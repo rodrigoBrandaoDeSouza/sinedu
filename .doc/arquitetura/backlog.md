@@ -74,15 +74,15 @@ Legenda: 🔒 segurança bloqueante · 🧪 inclui teste de negação/isolamento
 
 | ID | Item | Dep. |
 |----|------|------|
-| F3-01 | Upload seguro e leitura CSV/XLSX | F2-11 |
-| F3-02 | Mapeamento assistido + presets por formato | F3-01 |
-| F3-03 | Validação por linha com erros mascarados | F3-02 |
-| F3-04 | Consolidação: identificador institucional; sugestões por atributos; nunca mesclar só pelo nome; não sobrescrever com vazio | F3-03 |
-| F3-05 | Prévia e resolução manual de duplicados/conflitos | F3-04 |
-| F3-06 🧪 | Confirmação transacional por unidade (job), lote auditado, proveniência | F3-05 |
-| F3-07 | Front: assistente de importação e histórico | F3-01..F3-06 |
-| F3-08 | `ISchoolDataConnector` (interface, sem implementação real) | F3-06 |
-| F3-09 | Critérios de aceite 1, 2 e 16 automatizados | F3-06 |
+| F3-01 ✅ | Upload seguro e leitura CSV/XLSX | F2-11 |
+| F3-02 🟡 | Mapeamento assistido + presets por formato — sugestão automática por cabeçalho e conteúdo pronta; salvar mapeamentos personalizados ainda não | F3-01 |
+| F3-03 ✅ | Validação por linha com erros mascarados | F3-02 |
+| F3-04 ✅ | Consolidação: identificador institucional; sugestões por atributos; nunca mesclar só pelo nome; não sobrescrever com vazio | F3-03 |
+| F3-05 ✅ | Prévia e resolução manual de duplicados/conflitos | F3-04 |
+| F3-06 🧪 ✅ | Confirmação transacional por unidade (job), lote auditado, proveniência | F3-05 |
+| F3-07 ✅ | Front: assistente de importação e histórico | F3-01..F3-06 |
+| F3-08 ✅ | `ISchoolDataConnector` (interface, sem implementação real) | F3-06 |
+| F3-09 ✅ | Critérios de aceite 1, 2 e 16 automatizados | F3-06 |
 
 ## Fase 4 — Módulos protegidos
 

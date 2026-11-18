@@ -37,6 +37,7 @@ public sealed class SineduFixture : IAsyncLifetime
 {
     public const string SchoolA = "escola-a";
     public const string SchoolB = "escola-b";
+    public const string SchoolC = "escola-c";
 
     private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder("postgres:17-alpine")
         .WithDatabase("sinedu_platform")
@@ -68,6 +69,7 @@ public sealed class SineduFixture : IAsyncLifetime
 
         await ProvisionAsync(SchoolA, "Escola A (teste)");
         await ProvisionAsync(SchoolB, "Escola B (teste)");
+        await ProvisionAsync(SchoolC, "Escola C (importação)");
     }
 
     public async Task DisposeAsync()

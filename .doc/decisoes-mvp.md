@@ -71,6 +71,14 @@ Interpretações feitas na arquitetura. Valem como padrão até serem confirmada
 | P12 | **Escola suspensa:** ninguém faz login (mensagem de suspensão); dados preservados; jobs pausados. |
 | P13 | O painel mostra, por escola: nº de alunos ativos, turmas, usuários ativos, armazenamento, e-mails enviados no mês, falhas de jobs e versão do banco. Nenhum nome ou dado de aluno. |
 
+## Decisões da importação (Fase 3)
+
+- **O arquivo enviado não é guardado.** Ficam o hash, os cabeçalhos e as linhas da aba escolhida (as outras abas são descartadas ao validar). O conteúdo das linhas é apagado 90 dias depois (P5); totais, ações e mensagens permanecem.
+- **Confirmação síncrona**, uma unidade por aluno: uma linha com erro não derruba o lote e fica registrada como falha. Planilhas de até 20 mil linhas cabem nesse modelo; se aparecerem arquivos maiores, a confirmação passa para a fila de jobs.
+- **Turma inexistente é criada** no ano letivo ativo, com aviso na prévia ("turma nova"), incluindo o código de origem quando vier no rótulo.
+- **Mudança de turma na planilha** encerra a matrícula atual (remanejada) e abre outra — o histórico fica.
+- **Pedagogia não importa** (P8): só Direção e Administração técnica.
+
 ## Achados da planilha real (para a importação — Fase 3)
 
 - **CGM repetido:** o arquivo real tem um mesmo CGM em duas linhas. A importação precisa detectar e pedir revisão, não criar dois alunos.

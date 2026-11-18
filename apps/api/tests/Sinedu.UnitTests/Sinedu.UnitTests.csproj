@@ -20,6 +20,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Sinedu.SharedKernel\Sinedu.SharedKernel.csproj" />
+    <ProjectReference Include="..\..\src\Sinedu.Tenant.School\Sinedu.Tenant.School.csproj" />
   </ItemGroup>
 
 </Project>

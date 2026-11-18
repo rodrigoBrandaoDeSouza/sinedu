@@ -4,12 +4,22 @@ namespace Sinedu.Tenant.School;
 
 public sealed record ClassroomRef(Guid Id, string Name, Guid SchoolYearId, int Year, bool ActiveYear);
 
-/// <summary>Contrato público do módulo School para outros módulos (ex.: Students), sem expor tabelas.</summary>
+public sealed record ActiveYearRef(Guid Id, int Year, DateOnly StartsOn);
+
+/// <summary>Contrato público do módulo School para outros módulos (Students, Imports), sem expor tabelas.</summary>
 public interface IClassroomDirectory
 {
     Task<IReadOnlyDictionary<Guid, ClassroomRef>> GetAsync(IEnumerable<Guid> ids, CancellationToken ct = default);
 
     Task<ClassroomRef?> FindAsync(Guid id, CancellationToken ct = default);
+
+    Task<ActiveYearRef?> GetActiveYearAsync(CancellationToken ct = default);
+
+    /// <summary>Turmas do ano indexadas pela chave (série + turma + turno).</summary>
+    Task<IReadOnlyDictionary<ClassroomKey, Guid>> GetByKeyAsync(Guid yearId, CancellationToken ct = default);
+
+    /// <summary>Cria série e turma se ainda não existirem (usado na confirmação de importação).</summary>
+    Task<Guid> EnsureAsync(Guid yearId, ClassroomKey key, string? externalCode, CancellationToken ct = default);
 }
 
 internal sealed class ClassroomDirectory(SchoolDbContext db) : IClassroomDirectory
@@ -26,4 +36,48 @@ internal sealed class ClassroomDirectory(SchoolDbContext db) : IClassroomDirecto
 
     public async Task<ClassroomRef?> FindAsync(Guid id, CancellationToken ct = default) =>
         (await GetAsync([id], ct)).GetValueOrDefault(id);
+
+    public async Task<ActiveYearRef?> GetActiveYearAsync(CancellationToken ct = default) =>
+        await db.Years.AsNoTracking().Where(y => y.Status == SchoolYearStatus.Active)
+            .Select(y => new ActiveYearRef(y.Id, y.Year, y.StartsOn)).FirstOrDefaultAsync(ct);
+
+    public async Task<IReadOnlyDictionary<ClassroomKey, Guid>> GetByKeyAsync(Guid yearId, CancellationToken ct = default)
+    {
+        var rows = await db.Classrooms.AsNoTracking().Where(c => c.SchoolYearId == yearId)
+            .Select(c => new { c.Id, c.Grade!.ShortName, c.Grade.Stage, c.Section, c.Shift })
+            .ToListAsync(ct);
+        return rows.ToDictionary(r => new ClassroomKey(r.ShortName, r.Stage, r.Section, r.Shift), r => r.Id);
+    }
+
+    public async Task<Guid> EnsureAsync(Guid yearId, ClassroomKey key, string? externalCode, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(key);
+        var grade = await db.Grades.FirstOrDefaultAsync(g => g.Stage == key.Stage && g.ShortName == key.GradeShort, ct);
+        if (grade is null)
+        {
+            grade = new Grade
+            {
+                Id = Guid.CreateVersion7(), ShortName = key.GradeShort, Stage = key.Stage, Name = ClassroomLabel.GradeName(key), SortOrder = ClassroomLabel.GradeOrder(key),
+            };
+            db.Grades.Add(grade);
+        }
+
+        var classroom = await db.Classrooms.FirstOrDefaultAsync(c => c.SchoolYearId == yearId && c.GradeId == grade.Id && c.Section == key.Section && c.Shift == key.Shift, ct);
+        if (classroom is null)
+        {
+            classroom = new Classroom
+            {
+                Id = Guid.CreateVersion7(), SchoolYearId = yearId, GradeId = grade.Id, Section = key.Section, Shift = key.Shift, Status = ClassroomStatus.Active,
+                ExternalCode = externalCode,
+            };
+            db.Classrooms.Add(classroom);
+        }
+        else if (classroom.ExternalCode is null && externalCode is not null)
+        {
+            classroom.ExternalCode = externalCode;
+        }
+
+        await db.SaveChangesAsync(ct);
+        return classroom.Id;
+    }
 }

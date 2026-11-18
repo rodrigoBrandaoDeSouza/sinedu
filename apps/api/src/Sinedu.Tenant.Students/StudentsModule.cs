@@ -20,6 +20,7 @@ public sealed class StudentsModule : IModule
     public void AddServices(IServiceCollection services, IConfiguration configuration)
     {
         services.AddTenantDbContext<StudentsDbContext>(StudentsDbContext.Schema);
+        services.AddScoped<IStudentRegistry, StudentRegistry>();
     }
 
     public void MapEndpoints(IEndpointRouteBuilder endpoints)

@@ -56,7 +56,7 @@ var app = builder.Build();
 
 if (args.Length >= 3 && args[0] == "import-sample")
 {
-    await Sinedu.Tenant.Host.Dev.SampleImporter.RunAsync(app.Services, args[1], args[2]);
+    await Sinedu.Tenant.Host.Dev.SampleImporter.RunAsync(app.Services, args[1], args[2], args.Length > 3 ? args[3] : null);
     return;
 }
 

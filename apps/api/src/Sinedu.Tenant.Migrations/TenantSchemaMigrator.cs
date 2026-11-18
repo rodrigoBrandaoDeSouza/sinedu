@@ -6,6 +6,7 @@ using Sinedu.SharedKernel.Persistence;
 using Sinedu.SharedKernel.Tenancy;
 using Sinedu.SharedKernel.Web;
 using Sinedu.Tenant.Access;
+using Sinedu.Tenant.Imports;
 using Sinedu.Tenant.School;
 using Sinedu.Tenant.Students;
 
@@ -52,7 +53,7 @@ public sealed class InfraDbContextDesignFactory : IDesignTimeDbContextFactory<In
 public sealed class TenantSchemaMigrator : ITenantSchemaMigrator
 {
     /// <summary>Schemas com CRUD completo para a aplicação.</summary>
-    private static readonly string[] ReadWriteSchemas = [AccessDbContext.Schema, SchoolDbContext.Schema, StudentsDbContext.Schema];
+    private static readonly string[] ReadWriteSchemas = [AccessDbContext.Schema, SchoolDbContext.Schema, StudentsDbContext.Schema, ImportsDbContext.Schema];
 
     public async Task MigrateAsync(string ownerConnectionString, string appRole, CancellationToken cancellationToken = default)
     {
@@ -64,6 +65,7 @@ public sealed class TenantSchemaMigrator : ITenantSchemaMigrator
         await MigrateAsync<AccessDbContext>(ownerConnectionString, AccessDbContext.Schema, o => new AccessDbContext(o), cancellationToken);
         await MigrateAsync<SchoolDbContext>(ownerConnectionString, SchoolDbContext.Schema, o => new SchoolDbContext(o), cancellationToken);
         await MigrateAsync<StudentsDbContext>(ownerConnectionString, StudentsDbContext.Schema, o => new StudentsDbContext(o), cancellationToken);
+        await MigrateAsync<ImportsDbContext>(ownerConnectionString, ImportsDbContext.Schema, o => new ImportsDbContext(o), cancellationToken);
 
         await using var infra = new InfraDbContext(Options<InfraDbContext>(ownerConnectionString, InfraDbContext.Schema));
         await infra.Database.MigrateAsync(cancellationToken);

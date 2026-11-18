@@ -21,6 +21,9 @@ internal static class DevSeeder
     /// <summary>Segredo TOTP (base32) de todas as contas de dev. Gere o código com qualquer app autenticador.</summary>
     public const string TotpSecret = "KRSXG5CTMVRXEZLUKNSWG4TFOQ2DAMZR";
 
+    /// <summary>Conta da plataforma criada sem MFA: o primeiro login abre o cadastro do autenticador com QR code.</summary>
+    public const string MfaEnrollmentDemoEmail = "suporte@sinedu.local";
+
     private static readonly (string Slug, string Name, string DirectorEmail, string DirectorName)[] Schools =
     [
         ("escola-demo", "Colégio Estadual Demonstração", "diretora@escola-demo.local", "Diretora Fictícia"),
@@ -47,6 +50,15 @@ internal static class DevSeeder
         if (!await identity.PlatformRoles.AnyAsync(r => r.UserId == admin.Id && r.RevokedAt == null))
         {
             identity.PlatformRoles.Add(new PlatformRoleGrant { Id = Guid.CreateVersion7(), UserId = admin.Id, Role = Roles.SuperAdmin, GrantedAt = now });
+            await identity.SaveChangesAsync();
+        }
+
+        // Conta SEM MFA para ver o cadastro com QR code no primeiro login. Volta ao estado inicial a cada seed-dev.
+        var support = await EnsureAccountAsync(identity, totp, MfaEnrollmentDemoEmail, "Suporte (dev, sem MFA)", AccountKind.Platform, now);
+        await ResetMfaAsync(identity, support);
+        if (!await identity.PlatformRoles.AnyAsync(r => r.UserId == support.Id && r.RevokedAt == null))
+        {
+            identity.PlatformRoles.Add(new PlatformRoleGrant { Id = Guid.CreateVersion7(), UserId = support.Id, Role = Roles.Support, GrantedAt = now });
             await identity.SaveChangesAsync();
         }
 
@@ -82,6 +94,7 @@ internal static class DevSeeder
         Console.WriteLine();
         Console.WriteLine("Contas de desenvolvimento (senha para todas: " + Password + ")");
         Console.WriteLine("  admin@sinedu.local            → " + urls.PanelUrl);
+        Console.WriteLine($"  {MfaEnrollmentDemoEmail,-29} → {urls.PanelUrl} (sem MFA: cadastra o autenticador com QR code no 1º login)");
         foreach (var school in Schools)
         {
             Console.WriteLine($"  {school.DirectorEmail,-29} → {urls.TenantUrl(school.Slug)}");
@@ -111,5 +124,14 @@ internal static class DevSeeder
 
         await db.SaveChangesAsync();
         return user;
+    }
+
+    private static async Task ResetMfaAsync(IdentityDbContext db, UserAccount user)
+    {
+        user.MfaEnabled = false;
+        user.TotpSecretEncrypted = null;
+        user.LastTotpStep = null;
+        await db.RecoveryCodes.Where(c => c.UserId == user.Id).ExecuteDeleteAsync();
+        await db.SaveChangesAsync();
     }
 }

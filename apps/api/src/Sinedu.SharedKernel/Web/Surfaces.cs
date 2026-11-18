@@ -40,6 +40,7 @@ public static class Policies
     public const string PedagogicalStaff = "school:pedagogical";
     public const string SchoolTeam = "school:team";
     public const string StudentReader = "school:student-reader";
+    public const string ImportCommon = "school:import";
     public const string RecentStrongAuth = "school:recent-strong-auth";
 }
 

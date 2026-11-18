@@ -42,6 +42,7 @@ Criadas pelo `seed-dev`. **Somente para uso local.**
 | Conta | Onde entra |
 |-------|-----------|
 | `admin@sinedu.local` | Painel — http://painel.localhost:5174 |
+| `suporte@sinedu.local` | Painel — **sem MFA**: o 1º login abre o cadastro do autenticador com QR code (o `seed-dev` zera o MFA dela a cada execução) |
 | `diretora@escola-demo.local` | http://escola-demo.localhost:5173 |
 | `diretor@escola-modelo.local` | http://escola-modelo.localhost:5173 |
 | `diretora@escola-teste.local` | http://escola-teste.localhost:5173 — com a amostra anonimizada |

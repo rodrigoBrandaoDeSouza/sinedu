@@ -27,6 +27,7 @@
     <ProjectReference Include="..\..\src\Sinedu.Tenant.Migrations\Sinedu.Tenant.Migrations.csproj" />
     <ProjectReference Include="..\..\src\Sinedu.Tenant.School\Sinedu.Tenant.School.csproj" />
     <ProjectReference Include="..\..\src\Sinedu.Tenant.Students\Sinedu.Tenant.Students.csproj" />
+    <ProjectReference Include="..\..\src\Sinedu.Tenant.Imports\Sinedu.Tenant.Imports.csproj" />
   </ItemGroup>
 
 </Project>

@@ -5,6 +5,8 @@ import { DashboardPage } from "./pages/dashboard-page";
 import { AdminPage } from "./pages/admin-page";
 import { ClassroomPage } from "./pages/classroom-page";
 import { ClassroomsPage } from "./pages/classrooms-page";
+import { ImportPage } from "./pages/import-page";
+import { ImportsPage } from "./pages/imports-page";
 import { StaffPage } from "./pages/staff-page";
 import { StudentPage } from "./pages/student-page";
 import { StudentsPage } from "./pages/students-page";
@@ -27,7 +29,8 @@ export const routes: RouteObject[] = [
       { path: "equipe", element: <StaffPage /> },
       soon("ocorrencias", "Ocorrências", "Registro, acompanhamento, ata e linha do tempo.", "F5-01"),
       soon("comunicacoes", "Comunicações", "E-mails aos responsáveis com prévia, autorização e reenvio.", "F5-07"),
-      soon("importacoes", "Importações", "Planilhas CSV/XLSX com mapeamento assistido e prévia.", "F3-07"),
+      { path: "importacoes", element: <ImportsPage /> },
+      { path: "importacoes/:id", element: <ImportPage /> },
       soon("relatorios", "Relatórios", "Indicadores por bimestre, turma e categoria, com exportação.", "F6-04"),
       { path: "usuarios", element: <UsersPage /> },
       { path: "administracao", element: <AdminPage /> },
