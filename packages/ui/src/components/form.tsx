@@ -1,5 +1,5 @@
 import { AlertTriangle, CheckCircle2, Info, XCircle } from "lucide-react";
-import { forwardRef, useId, type InputHTMLAttributes, type ReactNode } from "react";
+import { forwardRef, useId, type InputHTMLAttributes, type ReactNode, type TextareaHTMLAttributes } from "react";
 import { cn } from "../lib/cn";
 
 export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
@@ -25,6 +25,47 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input({ l
         aria-describedby={describedBy}
         className={cn(
           "h-10 w-full rounded-lg border border-border-strong bg-surface-raised px-3 text-sm text-foreground transition-colors placeholder:text-muted-foreground hover:border-foreground/30",
+          error && "border-critical",
+        )}
+        {...props}
+      />
+      {error ? (
+        <p id={`${inputId}-error`} className="text-xs text-critical-text">
+          {error}
+        </p>
+      ) : hint ? (
+        <p id={`${inputId}-hint`} className="text-xs text-muted-foreground">
+          {hint}
+        </p>
+      ) : null}
+    </div>
+  );
+});
+
+export interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
+  label: string;
+  error?: string;
+  hint?: ReactNode;
+}
+
+export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function Textarea({ label, error, hint, className, id, rows = 3, ...props }, ref) {
+  const generated = useId();
+  const inputId = id ?? generated;
+  const describedBy = error ? `${inputId}-error` : hint ? `${inputId}-hint` : undefined;
+
+  return (
+    <div className={cn("flex flex-col gap-1.5", className)}>
+      <label htmlFor={inputId} className="text-sm font-medium text-foreground">
+        {label}
+      </label>
+      <textarea
+        ref={ref}
+        id={inputId}
+        rows={rows}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={describedBy}
+        className={cn(
+          "w-full rounded-lg border border-border-strong bg-surface-raised px-3 py-2 text-sm text-foreground transition-colors placeholder:text-muted-foreground hover:border-foreground/30",
           error && "border-critical",
         )}
         {...props}

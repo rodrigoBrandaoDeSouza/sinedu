@@ -2,10 +2,12 @@ import { AppShell, Button, postNavigate, ThemeToggle, type NavSection } from "@s
 import {
   Bell,
   BookOpenCheck,
+  CalendarClock,
   ChevronsUpDown,
   ClipboardList,
   FileBarChart,
   GraduationCap,
+  HeartPulse,
   LayoutDashboard,
   LogOut,
   Mail,
@@ -61,6 +63,17 @@ function SchoolShell() {
             items: [
               ...(config ? [{ to: "/importacoes", label: "Importações", icon: Upload }] : []),
               ...(pedagogical ? [{ to: "/relatorios", label: "Relatórios", icon: FileBarChart }] : []),
+            ],
+          },
+        ]
+      : []),
+    ...(pedagogical
+      ? [
+          {
+            title: "Sigiloso",
+            items: [
+              { to: "/protegido/pendencias", label: "Pendências sigilosas", icon: CalendarClock },
+              { to: "/protegido/importar-saude", label: "Importar saúde", icon: HeartPulse },
             ],
           },
         ]

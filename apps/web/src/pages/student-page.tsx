@@ -1,14 +1,24 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Alert, api, ApiError, Badge, Button, Card, CardBody, CardHeader, Dialog, Input } from "@sinedu/ui";
-import { ArrowLeft, Cake, Hash, Home, Mail, Pencil, Phone, ShieldCheck, UserRound } from "lucide-react";
-import { useState, type FormEvent, type ReactNode } from "react";
-import { Link, useParams } from "react-router";
+import { ArrowLeft, Cake, Hash, Home, Lock, Mail, Pencil, Phone, ShieldCheck, UserRound } from "lucide-react";
+import { lazy, Suspense, useState, type FormEvent, type ReactNode } from "react";
+import { Link, useParams, useSearchParams } from "react-router";
+import { useHasRole } from "../lib/session";
+
+/** Só baixado quando Direção/Pedagogia abre Saúde ou Proteção: os demais perfis nunca carregam este código. */
+const ProtectedPanel = lazy(() => import("./protected/protected-panel"));
+
+type Tab = "cadastro" | "saude" | "protecao";
 import { enrollmentLabels, formatDate, initials, relationshipLabels, schoolApi, type StudentDetails } from "../lib/school-api";
 
-/** Painel do aluno. Abas de Saúde e Proteção/Sigilo entram na Fase 4, só para Direção e Pedagogia. */
+/** Painel do aluno. Abas de Saúde e Proteção/Sigilo existem só para Direção e Pedagogia. */
 export function StudentPage() {
   const { id = "" } = useParams();
   const [editing, setEditing] = useState(false);
+  const pedagogical = useHasRole("DIRETOR", "PEDAGOGO");
+  const [params, setParams] = useSearchParams();
+  const requested = params.get("aba");
+  const tab: Tab = pedagogical && (requested === "saude" || requested === "protecao") ? requested : "cadastro";
   const { data: s, error } = useQuery({ queryKey: ["student", id], queryFn: () => schoolApi.student(id) });
 
   if (error instanceof ApiError && error.status === 404) {
@@ -55,6 +65,37 @@ export function StudentPage() {
         </div>
       </Card>
 
+      {pedagogical ? (
+        <div role="tablist" aria-label="Seções do aluno" className="mb-4 flex gap-1 border-b border-border">
+          {(
+            [
+              ["cadastro", "Cadastro"],
+              ["saude", "Saúde"],
+              ["protecao", "Proteção/Sigilo"],
+            ] as const
+          ).map(([value, label]) => (
+            <button
+              key={value}
+              role="tab"
+              type="button"
+              aria-selected={tab === value}
+              onClick={() => setParams(value === "cadastro" ? {} : { aba: value }, { replace: true })}
+              className={`-mb-px border-b-2 px-3 py-2 text-sm font-medium transition-colors ${
+                tab === value ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {value !== "cadastro" ? <Lock className="mr-1 inline size-3.5" aria-hidden /> : null}
+              {label}
+            </button>
+          ))}
+        </div>
+      ) : null}
+
+      {tab !== "cadastro" ? (
+        <Suspense fallback={<div className="h-40 animate-pulse rounded-(--radius-card) border border-border bg-surface" aria-busy="true" />}>
+          <ProtectedPanel studentId={s.id} tab={tab} />
+        </Suspense>
+      ) : (
       <div className="grid gap-4 xl:grid-cols-3">
         <div className="space-y-4 xl:col-span-2">
           <Card>
@@ -96,6 +137,8 @@ export function StudentPage() {
           </CardBody>
         </Card>
       </div>
+
+      )}
 
       {s.canEdit ? <EditStudentDialog student={s} open={editing} onClose={() => setEditing(false)} /> : null}
     </>

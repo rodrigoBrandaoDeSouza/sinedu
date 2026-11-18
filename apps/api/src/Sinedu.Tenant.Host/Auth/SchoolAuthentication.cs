@@ -136,6 +136,11 @@ public static class SchoolAuthentication
             .AddPolicy(Policies.StudentReader, p => p.RequireClaim(SchoolClaims.Role, Roles.Director, Roles.Pedagogue, Roles.Teacher, Roles.ReadOnly, Roles.PlatformSupport))
             .AddPolicy(Policies.RecentStrongAuth, p => p
                 .RequireClaim(SchoolClaims.Role, Roles.Director, Roles.Pedagogue)
+                .AddRequirements(new RecentStrongAuthRequirement()))
+            // Saúde e Proteção/Sigilo (D6): mesmos requisitos do step-up; a política é separada para poder evoluir sozinha.
+            .AddPolicy(Policies.ProtectedAccess, p => p
+                .RequireAuthenticatedUser()
+                .RequireClaim(SchoolClaims.Role, Roles.Director, Roles.Pedagogue)
                 .AddRequirements(new RecentStrongAuthRequirement()));
 
         return services;
@@ -292,6 +297,18 @@ internal sealed class StepUpResultHandler : IAuthorizationMiddlewareResultHandle
 
     public async Task HandleAsync(RequestDelegate next, HttpContext context, AuthorizationPolicy policy, PolicyAuthorizationResult authorizeResult)
     {
+        var isProtected = context.GetEndpoint()?.Metadata.GetMetadata<ProtectedResourceMetadata>() is not null;
+        if (isProtected && (authorizeResult.Forbidden || authorizeResult.Challenged))
+        {
+            // Auditoria sem conteúdo: quem, qual aluno (da rota) e o resultado.
+            var studentId = Guid.TryParse(context.GetRouteValue("studentId") as string, out var sid) ? sid : (Guid?)null;
+            var audit = context.RequestServices.GetService<IAuditLog>();
+            if (audit is not null && context.RequestServices.GetRequiredService<TenantScope>().HasTenant)
+            {
+                await audit.WriteAsync(new AuditEntry("protected_access_denied", AuditResult.Denied, "protected", StudentId: studentId), context.RequestAborted);
+            }
+        }
+
         var onlyStepUpFailed = authorizeResult.Forbidden
             && authorizeResult.AuthorizationFailure?.FailedRequirements.All(r => r is RecentStrongAuthRequirement) == true
             && authorizeResult.AuthorizationFailure.FailedRequirements.Any();

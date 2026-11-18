@@ -98,6 +98,7 @@ dotnet test apps/api/Sinedu.slnx
 dotnet run --project apps/api/src/Sinedu.Platform.Host -- migrate seed-dev   # banco + contas e escolas fictícias
 dotnet run --project apps/api/src/Sinedu.Platform.Host -- migrate-tenants    # atualiza o schema das escolas desatualizadas
 dotnet run --project apps/api/src/Sinedu.Tenant.Host -- import-sample escola-teste <caminho absoluto do .xlsx em .doc/amostras> [aba]   # usa o mesmo pipeline da importação
+dotnet run --project apps/api/src/Sinedu.Tenant.Host -- rewrap-protected escola-teste   # após rotacionar a chave da escola no Vault (runbook em .doc/arquitetura)
 dotnet run --project apps/api/src/Sinedu.Platform.Host   # :5100 → conta.localhost / painel.localhost
 dotnet run --project apps/api/src/Sinedu.Tenant.Host     # :5200 → {escola}.localhost
 

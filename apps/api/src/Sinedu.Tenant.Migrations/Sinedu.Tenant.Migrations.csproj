@@ -6,6 +6,7 @@
     <ProjectReference Include="..\Sinedu.Tenant.School\Sinedu.Tenant.School.csproj" />
     <ProjectReference Include="..\Sinedu.Tenant.Students\Sinedu.Tenant.Students.csproj" />
     <ProjectReference Include="..\Sinedu.Tenant.Imports\Sinedu.Tenant.Imports.csproj" />
+    <ProjectReference Include="..\Sinedu.Tenant.ProtectedRecords\Sinedu.Tenant.ProtectedRecords.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

@@ -42,7 +42,16 @@ public static class Policies
     public const string StudentReader = "school:student-reader";
     public const string ImportCommon = "school:import";
     public const string RecentStrongAuth = "school:recent-strong-auth";
+
+    /// <summary>Saúde e Proteção/Sigilo: só DIRETOR/PEDAGOGO desta escola, com MFA e autenticação forte nos últimos 15 min.</summary>
+    public const string ProtectedAccess = "school:protected";
 }
+
+/// <summary>
+/// Marca endpoints dos módulos protegidos. Negativas de autorização nesses endpoints viram 403 uniforme
+/// (sem revelar se o registro existe) e são auditadas como <c>protected_access_denied</c>.
+/// </summary>
+public sealed class ProtectedResourceMetadata;
 
 /// <summary>Papéis.</summary>
 public static class Roles

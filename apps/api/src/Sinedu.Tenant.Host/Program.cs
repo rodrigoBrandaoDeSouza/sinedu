@@ -54,6 +54,12 @@ services.AddModules(
 
 var app = builder.Build();
 
+if (args.Length >= 2 && args[0] == "rewrap-protected")
+{
+    await Sinedu.Tenant.Host.Operations.RewrapCommand.RunAsync(app.Services, args[1]);
+    return;
+}
+
 if (args.Length >= 3 && args[0] == "import-sample")
 {
     await Sinedu.Tenant.Host.Dev.SampleImporter.RunAsync(app.Services, args[1], args[2], args.Length > 3 ? args[3] : null);

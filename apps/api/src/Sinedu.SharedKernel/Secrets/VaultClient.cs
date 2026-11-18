@@ -43,6 +43,12 @@ public sealed class VaultClient(HttpClient http, IOptions<VaultOptions> options)
         return Convert.FromBase64String(data.GetProperty("plaintext").GetString()!);
     }
 
+    public async Task<string> RewrapAsync(string keyName, string wrapped, CancellationToken cancellationToken = default)
+    {
+        var data = await PostAsync($"{_options.TransitMount}/rewrap/{Escape(keyName)}", new { ciphertext = wrapped }, cancellationToken);
+        return data.GetProperty("ciphertext").GetString()!;
+    }
+
     public async Task<string> EncryptAsync(string keyName, byte[] plaintext, CancellationToken cancellationToken = default)
     {
         var data = await PostAsync(

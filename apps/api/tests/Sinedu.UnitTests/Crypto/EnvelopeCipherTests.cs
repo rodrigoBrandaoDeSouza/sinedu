@@ -82,6 +82,8 @@ public class EnvelopeCipherTests
             return Task.FromResult(new DataKey(dek, Convert.ToBase64String([.. nonce, .. tag, .. wrapped])));
         }
 
+        public Task<string> RewrapAsync(string keyName, string wrapped, CancellationToken cancellationToken = default) => Task.FromResult(wrapped);
+
         public Task<byte[]> UnwrapAsync(string keyName, string wrapped, CancellationToken cancellationToken = default)
         {
             var raw = Convert.FromBase64String(wrapped);

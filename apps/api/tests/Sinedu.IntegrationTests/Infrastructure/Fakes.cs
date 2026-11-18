@@ -38,6 +38,17 @@ public sealed class InMemoryVault : IDataKeyProvider, IKeyManagement, ISecretCip
     public Task<byte[]> UnwrapAsync(string keyName, string wrapped, CancellationToken cancellationToken = default) =>
         DecryptAsync(keyName, wrapped, cancellationToken);
 
+    private int _rewraps;
+
+    public int Rewraps => _rewraps;
+
+    /// <summary>Como no Vault: decifra e recifra sem devolver a DEK ao chamador.</summary>
+    public async Task<string> RewrapAsync(string keyName, string wrapped, CancellationToken cancellationToken = default)
+    {
+        Interlocked.Increment(ref _rewraps);
+        return await EncryptAsync(keyName, await DecryptAsync(keyName, wrapped, cancellationToken), cancellationToken);
+    }
+
     public Task<string> EncryptAsync(string keyName, byte[] plaintext, CancellationToken cancellationToken = default)
     {
         var key = _keys.GetOrAdd(keyName, _ => RandomNumberGenerator.GetBytes(32));
@@ -92,8 +103,43 @@ public sealed class InMemoryObjectStorage : IObjectStorage
     public Task DeleteBucketAsync(string bucket, CancellationToken cancellationToken = default)
     {
         Buckets.TryRemove(bucket, out _);
+        foreach (var key in Objects.Keys.Where(k => k.StartsWith(bucket + "/", StringComparison.Ordinal)))
+        {
+            Objects.TryRemove(key, out _);
+        }
+
         return Task.CompletedTask;
     }
+
+    /// <summary>Objetos gravados, por "bucket/chave" — os testes de vazamento varrem estes bytes.</summary>
+    public ConcurrentDictionary<string, byte[]> Objects { get; } = new();
+
+    public Task PutAsync(string bucket, string key, byte[] content, CancellationToken cancellationToken = default)
+    {
+        if (!Buckets.ContainsKey(bucket))
+        {
+            throw new InvalidOperationException("Bucket inexistente.");
+        }
+
+        Objects[bucket + "/" + key] = content.ToArray();
+        return Task.CompletedTask;
+    }
+
+    public Task<byte[]?> GetAsync(string bucket, string key, CancellationToken cancellationToken = default) =>
+        Task.FromResult(Objects.TryGetValue(bucket + "/" + key, out var c) ? c.ToArray() : null);
+}
+
+/// <summary>
+/// Sink do Serilog registrado no DI dos hosts (WebDefaults usa ReadFrom.Services): guarda mensagem, propriedades e
+/// exceção de todo evento de log — os testes de vazamento procuram conteúdo sensível aqui.
+/// </summary>
+public sealed class CapturingLogSink : Serilog.Core.ILogEventSink
+{
+    public ConcurrentQueue<string> Lines { get; } = new();
+
+    public void Emit(Serilog.Events.LogEvent logEvent) =>
+        Lines.Enqueue($"{logEvent.Level} {logEvent.RenderMessage(System.Globalization.CultureInfo.InvariantCulture)} " +
+            string.Join(' ', logEvent.Properties.Select(p => $"{p.Key}={p.Value}")) + " " + logEvent.Exception);
 }
 
 public sealed class CapturingEmailSender : IEmailSender

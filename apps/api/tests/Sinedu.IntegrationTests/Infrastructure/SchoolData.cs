@@ -66,6 +66,21 @@ public static class SchoolData
         await access.SaveChangesAsync();
     }
 
+    /// <summary>Aluno novo na turma X (testes que precisam de um aluno "limpo"). Devolve id e CGM.</summary>
+    public static async Task<(Guid Id, string Code)> NewStudentAsync(SineduFixture fx, string slug)
+    {
+        var sample = await EnsureAsync(fx, slug);
+        var connection = await fx.SchoolConnectionAsync(slug, owner: true);
+        await using var school = new SchoolDbContext(new DbContextOptionsBuilder<SchoolDbContext>().UseSineduPostgres(connection, SchoolDbContext.Schema).Options);
+        await using var students = new StudentsDbContext(new DbContextOptionsBuilder<StudentsDbContext>().UseSineduPostgres(connection, StudentsDbContext.Schema).Options);
+        var year = await school.Years.FirstAsync(y => y.Id == sample.YearId);
+        var classroom = await school.Classrooms.FirstAsync(c => c.Id == sample.ClassroomX);
+        var student = NewStudent($"CAIO FICTÍCIO {Guid.NewGuid().ToString("N")[..6].ToUpperInvariant()}", classroom, year);
+        students.Add(student);
+        await students.SaveChangesAsync();
+        return (student.Id, student.InstitutionalCode!);
+    }
+
     private static Student NewStudent(string name, Classroom classroom, SchoolYear year)
     {
         var student = new Student

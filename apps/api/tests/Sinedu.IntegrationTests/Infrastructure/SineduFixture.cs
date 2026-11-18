@@ -51,6 +51,8 @@ public sealed class SineduFixture : IAsyncLifetime
 
     public CapturingEmailSender Email { get; } = new();
 
+    public CapturingLogSink Logs { get; } = new();
+
     public FakePlatformMemberships PlatformMemberships { get; } = new();
 
     public WebApplicationFactory<PlatformHostEntryPoint> Platform { get; private set; } = null!;
@@ -210,6 +212,7 @@ public sealed class SineduFixture : IAsyncLifetime
             ["TenantDatabases:Host"] = _postgres.Hostname,
             ["TenantDatabases:Port"] = _postgres.GetMappedPublicPort(5432).ToString(CultureInfo.InvariantCulture),
             ["Database:MigrateOnStartup"] = "false",
+            ["RateLimiting:PermitPerMinute"] = "100000",
             ["Oidc:TenantClientSecret"] = "test-escola-client-secret-0123456789abcdef",
             ["Oidc:PanelClientSecret"] = "test-painel-client-secret-0123456789abcdef",
         };
@@ -228,6 +231,7 @@ public sealed class SineduFixture : IAsyncLifetime
             services.RemoveAll<ISecretStore>().AddSingleton<ISecretStore>(Vault);
             services.RemoveAll<IObjectStorage>().AddSingleton<IObjectStorage>(Storage);
             services.RemoveAll<IEmailSender>().AddSingleton<IEmailSender>(Email);
+            services.AddSingleton<Serilog.Core.ILogEventSink>(Logs);
             if (!platform)
             {
                 services.RemoveAll<IPlatformMemberships>().AddSingleton<IPlatformMemberships>(PlatformMemberships);

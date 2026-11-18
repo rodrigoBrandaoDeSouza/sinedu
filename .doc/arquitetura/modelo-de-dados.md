@@ -103,9 +103,10 @@ erDiagram
     guardians ||--o{ student_guardians : ""
 
     students ||--o| health_records : "cifrado"
-    health_records ||--o{ health_record_versions : ""
+    health_records ||--o{ record_versions : ""
     students ||--o{ protection_records : "cifrado"
-    protection_records ||--o{ protection_record_versions : ""
+    protection_records ||--o{ record_versions : ""
+    students ||--o{ secure_attachments : "cifrado"
 
     students ||--o{ occurrences : ""
     student_enrollments ||--o{ occurrences : "turma do fato"
@@ -156,10 +157,10 @@ erDiagram
 | Tabela | Colunas principais | Observações |
 |--------|-------------------|-------------|
 | `health_records` | student_id (único), current_version, review_due_on | |
-| `health_record_versions` | record_id, version, ciphertext, nonce, tag, wrapped_dek, key_version, payload_schema_version, change_reason_enc, created_by, created_at | Payload: tipo sanguíneo, alergias, condições, medicamentos, restrições, contatos de emergência, origem. |
 | `protection_records` | student_id, kind, status (`vigente`/`revogada`/`expirada`), valid_until, current_version | `kind`, `status`, `valid_until` em claro (P3). |
-| `protection_record_versions` | idem health | Payload: pessoas autorizadas/não autorizadas, autoridade, documento, fundamentação, nível de verificação, observações. |
-| `secure_attachments` | student_id, owner_type, owner_id, object_key, wrapped_dek, key_version, metadata_enc, size_bytes, ciphertext_sha256, created_by | |
+| `record_versions` | record_kind (`Health`/`Protection`), record_id, student_id, version, payload_schema_version, ciphertext, nonce, tag, wrapped_key, created_by, created_by_name, created_at | Versões imutáveis das duas fichas. O envelope guarda dados **e** motivo da alteração. Saúde: tipo sanguíneo, alergias, condições, medicamentos, restrições, primeiros cuidados, contatos de emergência, origem. Proteção: título, descrição, autoridade, documento, fundamentação, verificação, pessoas autorizadas/impedidas, observações. A versão da chave vem no prefixo `vault:vN:` da DEK. |
+| `secure_attachments` | student_id, owner_kind, owner_id, object_key, nonce, tag, wrapped_key, metadata (envelope próprio: nome, tipo, descrição), size_bytes, ciphertext_sha256, created_by, removed_at | Objeto no S3 em `protected/{id}`, só ciphertext. |
+| `exports` | student_id, sections, justificativa (envelope), created_by, created_at | Exportações excepcionais. |
 
 ### Schema `occurrences`
 

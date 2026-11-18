@@ -88,15 +88,15 @@ Legenda: 🔒 segurança bloqueante · 🧪 inclui teste de negação/isolamento
 
 | ID | Item | Dep. |
 |----|------|------|
-| F4-01 🔒🧪 | Saúde: registro versionado cifrado, step-up, auditoria | F1-07, F1-09, F1-10, F2-05 |
-| F4-02 🔒🧪 | Proteção/Sigilo: vários registros, vigência, revogação, versões | F4-01 |
-| F4-03 🔒🧪 | Anexos seguros (cifrados na API, download só via API) | F4-01 |
-| F4-04 🔒 | Revisões pendentes / medidas vencidas | F4-02 |
-| F4-05 🔒🧪 | Importação de Saúde/Proteção (fluxo dedicado) | F4-02, F3-03 |
-| F4-06 🔒 | Exportação excepcional com justificativa, marca d'água e auditoria | F4-02 |
-| F4-07 | Front: abas Saúde e Proteção carregadas sob demanda só para perfis autorizados; modal de step-up | F4-01..F4-03 |
-| F4-08 🔒🧪 | `ProtectedDataLeakTests` completo (inclui métricas da plataforma, suporte e backups) | F4-01..F4-06, P-10, P-11 |
-| F4-09 🔒 | Rotação de chave da escola (`rewrap`) e runbook | F4-01 |
+| F4-01 🔒🧪 ✅ | Saúde: registro versionado cifrado, step-up, auditoria | F1-07, F1-09, F1-10, F2-05 |
+| F4-02 🔒🧪 ✅ | Proteção/Sigilo: vários registros, vigência, revogação, versões | F4-01 |
+| F4-03 🔒🧪 ✅ | Anexos seguros (cifrados na API, download só via API) | F4-01 |
+| F4-04 🔒 ✅ | Revisões pendentes / medidas vencidas | F4-02 |
+| F4-05 🔒🧪 🟡 | Importação de Saúde/Proteção (fluxo dedicado) — Saúde pronta; Proteção fica no cadastro manual (registros dependem de documento e vigência) | F4-02, F3-03 |
+| F4-06 🔒 ✅ | Exportação excepcional com justificativa, marca d'água e auditoria | F4-02 |
+| F4-07 ✅ | Front: abas Saúde e Proteção carregadas sob demanda só para perfis autorizados; modal de step-up | F4-01..F4-03 |
+| F4-08 🔒🧪 🟡 | `ProtectedDataLeakTests` completo (inclui métricas da plataforma, suporte e backups) — varre respostas, cabeçalhos, tabelas brutas da escola e da plataforma, S3, logs e e-mails; métricas (P-10) e backups entram quando existirem | F4-01..F4-06, P-10, P-11 |
+| F4-09 🔒 ✅ | Rotação de chave da escola (`rewrap`) e runbook | F4-01 |
 
 ## Fase 5 — Ocorrências e comunicações
 

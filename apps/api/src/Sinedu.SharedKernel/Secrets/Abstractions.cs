@@ -12,6 +12,9 @@ public interface IDataKeyProvider
     Task<DataKey> GenerateAsync(string keyName, CancellationToken cancellationToken = default);
 
     Task<byte[]> UnwrapAsync(string keyName, string wrapped, CancellationToken cancellationToken = default);
+
+    /// <summary>Recifra uma DEK com a versão mais nova da chave da escola, sem expor a DEK (Vault Transit rewrap).</summary>
+    Task<string> RewrapAsync(string keyName, string wrapped, CancellationToken cancellationToken = default);
 }
 
 /// <summary>Gestão do ciclo de vida das chaves das escolas. Usado só pela plataforma; não decifra dados.</summary>

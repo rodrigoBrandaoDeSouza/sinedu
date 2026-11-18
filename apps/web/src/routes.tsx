@@ -7,6 +7,7 @@ import { ClassroomPage } from "./pages/classroom-page";
 import { ClassroomsPage } from "./pages/classrooms-page";
 import { ImportPage } from "./pages/import-page";
 import { ImportsPage } from "./pages/imports-page";
+import { HealthImportRoute, PendingRoute } from "./pages/protected/lazy-routes";
 import { StaffPage } from "./pages/staff-page";
 import { StudentPage } from "./pages/student-page";
 import { StudentsPage } from "./pages/students-page";
@@ -31,6 +32,8 @@ export const routes: RouteObject[] = [
       soon("comunicacoes", "Comunicações", "E-mails aos responsáveis com prévia, autorização e reenvio.", "F5-07"),
       { path: "importacoes", element: <ImportsPage /> },
       { path: "importacoes/:id", element: <ImportPage /> },
+      { path: "protegido/pendencias", element: <PendingRoute /> },
+      { path: "protegido/importar-saude", element: <HealthImportRoute /> },
       soon("relatorios", "Relatórios", "Indicadores por bimestre, turma e categoria, com exportação.", "F6-04"),
       { path: "usuarios", element: <UsersPage /> },
       { path: "administracao", element: <AdminPage /> },

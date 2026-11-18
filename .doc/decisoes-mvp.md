@@ -87,10 +87,23 @@ Interpretações feitas na arquitetura. Valem como padrão até serem confirmada
 - **Sem autorização de contato:** o arquivo não traz autorização para contatar o responsável. Importamos com `contato não autorizado` (spec §6.1); a escola registra a autorização depois.
 - **Observações livres podem conter dados sensíveis:** nunca importar texto livre para o cadastro comum.
 
+## Decisões da Fase 4 (Saúde e Proteção/Sigilo)
+
+- **Uma ficha de Saúde por aluno**, versionada. Proteção/Sigilo tem **vários registros** por aluno (guarda, tutela, medida protetiva, restrição judicial, autorização de retirada, proteção da criança/adolescente, outro).
+- **Em claro só o mínimo:** data de revisão da ficha de Saúde; tipo, situação (vigente/revogada) e validade da Proteção (P3). Todo o resto — inclusive o **motivo de cada alteração**, nomes de arquivos e a justificativa de exportação — fica cifrado (envelope AES-256-GCM, AAD = escola | aluno | tipo | registro | versão).
+- **Toda alteração exige motivo** e gera versão nova; edição concorrente recebe 409 em vez de sobrescrever. Registro revogado não é editado: cria-se outro.
+- **"Vencida" é calculada** na leitura (vigente com validade passada). Nenhuma rotina altera registros sozinha.
+- **Pendências:** revisões de Saúde e validades de Proteção em até **30 dias** ou já vencidas, sem conteúdo.
+- **Anexos protegidos:** PDF, PNG ou JPG (conferidos pelo conteúdo, não pela extensão), até 10 MB, cifrados na API antes do S3, com SHA-256 do ciphertext conferido no download. "Retirar" esconde o anexo da lista e fica auditado; o objeto cifrado continua guardado.
+- **Exportação excepcional:** PDF com marca d'água (nome de quem exportou, data/hora e número da exportação) em todas as páginas, justificativa com 20+ caracteres guardada cifrada e evento `protected_exported` na auditoria. Gerado com QuestPDF (licença Community — ver pendência abaixo).
+- **Importação de Saúde:** fluxo próprio (Direção/Pedagogia + step-up). O arquivo **não é guardado**: a prévia lê, devolve só contagens e nomes das colunas preenchidas, e descarta; a confirmação reenvia o arquivo com o motivo. Aluno **só por CGM**; CGM repetido, ausente ou desconhecido não é importado. Campo vazio não apaga o que existe. A importação de Proteção fica fora do MVP (registros dependem de documento e vigência individuais).
+- **Negativas** nos endpoints protegidos respondem 403 uniforme (papel sem acesso) ou 404 (aluno fora desta escola) e são auditadas como `protected_access_denied`, sem conteúdo.
+- **Rotação de chave:** rotacionar a chave da escola no Vault e rodar `rewrap-protected {escola}` (ver [runbook](arquitetura/runbook-rotacao-de-chave.md)).
+
 ## Pendências (não bloqueiam o início)
 
 - [ ] Domínio definitivo e acesso ao DNS (certificado wildcard via desafio DNS).
-- [ ] Gerador de PDF: avaliar licença do QuestPDF para uso por órgão público.
+- [ ] Gerador de PDF: avaliar licença do QuestPDF para uso por órgão público. **Já em uso** na exportação excepcional (licença Community); trocar de biblioteca é local a `ExportService`.
 - [ ] Prazos de retenção e descarte — definir com as redes e assessoria LGPD.
 - [x] Amostras anonimizadas de importação (D7) — `.doc/amostras/alunos-2026-anonimizado.xlsx` (1.032 alunos, 34 turmas), carregada na `escola-teste`.
 - [ ] Modelo de texto padrão das comunicações aos responsáveis.
@@ -102,3 +115,8 @@ Interpretações feitas na arquitetura. Valem como padrão até serem confirmada
 - [ ] **Papel de leitura do registro:** o Tenant.Host lê `tenants.v_registry` com um papel próprio, só com `SELECT` nessa view (em dev usa o usuário do Postgres).
 - [ ] **Vault em produção:** autenticação AppRole por host, com as políticas `sinedu-platform` e `sinedu-tenant-app` de `infra/vault/policies`.
 - [ ] **Proxy reverso:** `UseForwardedHeaders` + Caddy com certificado wildcard.
+
+### Pendências técnicas da Fase 4
+
+- [ ] **Auditoria de acessos ao registro na tela** (matriz: Diretor vê quem acessou; P9 para Pedagogia). Os eventos já são gravados; falta a visualização.
+- [ ] **Anexos de dev corrompidos:** anexos enviados antes da correção do cliente S3 (checksum em trailer) na `escola-demo` não abrem (a verificação de integridade bloqueia). Só afeta dados de teste.

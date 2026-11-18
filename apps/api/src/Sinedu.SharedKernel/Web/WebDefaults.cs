@@ -38,13 +38,15 @@ public static class WebDefaults
                 ctx.ProblemDetails.Extensions["correlationId"] = ctx.HttpContext.TraceIdentifier;
             });
 
+        // Limite por IP. Configurável (RateLimiting:PermitPerMinute) para testes, onde todos os clientes têm o mesmo IP.
+        var permitPerMinute = int.TryParse(builder.Configuration["RateLimiting:PermitPerMinute"], out var configured) && configured > 0 ? configured : 300;
         builder.Services.AddRateLimiter(options =>
         {
             options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
             options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(ctx =>
                 RateLimitPartition.GetFixedWindowLimiter(
                     ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-                    _ => new FixedWindowRateLimiterOptions { PermitLimit = 300, Window = TimeSpan.FromMinutes(1) }));
+                    _ => new FixedWindowRateLimiterOptions { PermitLimit = permitPerMinute, Window = TimeSpan.FromMinutes(1) }));
         });
 
         return builder;

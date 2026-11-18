@@ -61,12 +61,20 @@ describe("App da escola", () => {
     expect(screen.queryByText("Usuários e acessos")).not.toBeInTheDocument();
   });
 
-  it("nunca exibe nada dos módulos protegidos", async () => {
+  it("o painel nunca exibe dados dos módulos protegidos", async () => {
     signedInAs(["DIRETOR"]);
     renderAt("/");
     await screen.findByText("Alunos matriculados");
 
-    expect(document.body.textContent ?? "").not.toMatch(/saúde|sigilo|medicamento|alergia/i);
+    expect(screen.getByRole("main").textContent ?? "").not.toMatch(/saúde|sigilo|medicamento|alergia/i);
+  });
+
+  it("Professor não vê menu, abas nem nenhuma menção aos módulos protegidos", async () => {
+    signedInAs(["PROFESSOR"]);
+    renderAt("/");
+    await screen.findByText(/Olá, Pessoa/);
+
+    expect(document.body.textContent ?? "").not.toMatch(/saúde|sigilo|pendências sigilosas/i);
   });
 
   it("Administração técnica só pode convidar Professor e Consulta", async () => {
