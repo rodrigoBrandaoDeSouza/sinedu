@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Sinedu.SharedKernel\Sinedu.SharedKernel.csproj" />
+    <ProjectReference Include="..\Sinedu.Platform.Identity\Sinedu.Platform.Identity.csproj" />
+    <ProjectReference Include="..\Sinedu.Platform.Tenants\Sinedu.Platform.Tenants.csproj" />
+    <ProjectReference Include="..\Sinedu.Platform.Billing\Sinedu.Platform.Billing.csproj" />
+    <ProjectReference Include="..\Sinedu.Platform.Metrics\Sinedu.Platform.Metrics.csproj" />
+    <ProjectReference Include="..\Sinedu.Platform.Support\Sinedu.Platform.Support.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+</Project>

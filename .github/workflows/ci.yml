@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  api:
+    name: API (.NET)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+      - name: Restaurar
+        run: dotnet restore apps/api/Sinedu.slnx
+      - name: Build (avisos são erros)
+        run: dotnet build apps/api/Sinedu.slnx --no-restore -c Release
+      - name: Testes (unitários, arquitetura, integração)
+        run: dotnet test apps/api/Sinedu.slnx --no-build -c Release
+
+  web:
+    name: Fronts (escola e painel)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+      - run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: Tipos
+        run: npm run typecheck
+      - name: Testes
+        run: npm test
+      - name: Build
+        run: npm run build

@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(dotnet build:*)",
+      "Bash(dotnet test:*)",
+      "Bash(npm run lint:*)",
+      "Bash(npm test:*)",
+      "Bash(docker compose ps:*)"
+    ],
+    "deny": [
+      "Read(./**/.env)",
+      "Read(./**/.env.*)",
+      "Read(./**/secrets.json)",
+      "Read(./**/*.pfx)",
+      "Read(./**/*.key)",
+      "Read(./**/*.keystore)",
+      "Read(./**/*.jks)"
+    ]
+  }
+}

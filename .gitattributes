@@ -1,0 +1,6 @@
+# Finais de linha LF no repositório e no checkout (scripts rodam em containers Linux).
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.ico binary
+*.woff2 binary

@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Sinedu.SharedKernel\Sinedu.SharedKernel.csproj" />
+    <ProjectReference Include="..\Sinedu.Tenant.Access\Sinedu.Tenant.Access.csproj" />
+    <ProjectReference Include="..\Sinedu.Tenant.School\Sinedu.Tenant.School.csproj" />
+    <ProjectReference Include="..\Sinedu.Tenant.Students\Sinedu.Tenant.Students.csproj" />
+    <ProjectReference Include="..\Sinedu.Tenant.ProtectedRecords\Sinedu.Tenant.ProtectedRecords.csproj" />
+    <ProjectReference Include="..\Sinedu.Tenant.Occurrences\Sinedu.Tenant.Occurrences.csproj" />
+    <ProjectReference Include="..\Sinedu.Tenant.Notifications\Sinedu.Tenant.Notifications.csproj" />
+    <ProjectReference Include="..\Sinedu.Tenant.Imports\Sinedu.Tenant.Imports.csproj" />
+    <ProjectReference Include="..\Sinedu.Tenant.Analytics\Sinedu.Tenant.Analytics.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+</Project>

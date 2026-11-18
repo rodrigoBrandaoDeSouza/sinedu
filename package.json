@@ -1,0 +1,21 @@
+{
+  "name": "sinedu",
+  "private": true,
+  "workspaces": [
+    "packages/ui",
+    "apps/web",
+    "apps/painel"
+  ],
+  "scripts": {
+    "dev:web": "npm run dev -w @sinedu/web",
+    "dev:painel": "npm run dev -w @sinedu/painel",
+    "build": "npm run build -w @sinedu/web -w @sinedu/painel",
+    "lint": "npm run lint --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.65.1",
+    "typescript": "^6.0.3"
+  }
+}

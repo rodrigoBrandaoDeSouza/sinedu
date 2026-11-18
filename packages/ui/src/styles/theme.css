@@ -1,0 +1,215 @@
+/*
+ * Sinedu — tokens de design.
+ * Importado por cada app depois de `@import "tailwindcss"`.
+ * Tema escuro: `data-theme="dark"` no <html> (o ThemeProvider sempre define o atributo).
+ * O bloco @media cobre o primeiro paint antes do JS, respeitando a preferência do sistema.
+ */
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+:root {
+  color-scheme: light;
+
+  /* Superfícies */
+  --background: #f6f6f3;
+  --surface: #fcfcfb;
+  --surface-raised: #ffffff;
+  --surface-sunken: #efefeb;
+  --foreground: #0b0b0b;
+  --foreground-secondary: #52514e;
+  --muted-foreground: #6f6d68;
+  --border: rgba(11, 11, 11, 0.09);
+  --border-strong: rgba(11, 11, 11, 0.16);
+
+  /* Marca */
+  --primary: #4338ca;
+  --primary-hover: #3730a3;
+  --primary-foreground: #ffffff;
+  --primary-soft: #eef0ff;
+  --primary-soft-foreground: #3730a3;
+  --ring: rgba(67, 56, 202, 0.45);
+
+  /* Navegação lateral */
+  --sidebar: #fbfbf9;
+  --sidebar-active: #eef0ff;
+  --sidebar-active-foreground: #3730a3;
+
+  /* Gráficos (paleta validada — skill dataviz) */
+  --chart-grid: #e1e0d9;
+  --chart-axis: #c3c2b7;
+  --chart-muted: #898781;
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+  --series-prev: #c3c2b7;
+
+  /* Estados (sempre com ícone + texto) */
+  --status-good: #0ca30c;
+  --status-good-text: #006300;
+  --status-good-soft: #e7f6e7;
+  --status-warning: #fab219;
+  --status-warning-text: #7a5200;
+  --status-warning-soft: #fff4dc;
+  --status-serious: #ec835a;
+  --status-critical: #d03b3b;
+  --status-critical-text: #a62626;
+  --status-critical-soft: #fdecec;
+  --status-info-text: #1c5cab;
+  --status-info-soft: #e6f0fc;
+
+  --shadow-card: 0 1px 2px rgba(11, 11, 11, 0.04), 0 1px 1px rgba(11, 11, 11, 0.02);
+  --shadow-pop: 0 10px 30px -10px rgba(11, 11, 11, 0.25);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --background: #0d0d0d;
+    --surface: #1a1a19;
+    --surface-raised: #222220;
+    --surface-sunken: #141413;
+    --foreground: #f0efec;
+    --foreground-secondary: #c3c2b7;
+    --muted-foreground: #98968f;
+    --border: rgba(255, 255, 255, 0.08);
+    --border-strong: rgba(255, 255, 255, 0.16);
+    --primary: #818cf8;
+    --primary-hover: #a5b4fc;
+    --primary-foreground: #0d0d0d;
+    --primary-soft: rgba(129, 140, 248, 0.14);
+    --primary-soft-foreground: #c7cdff;
+    --ring: rgba(129, 140, 248, 0.5);
+    --sidebar: #121211;
+    --sidebar-active: rgba(129, 140, 248, 0.14);
+    --sidebar-active-foreground: #c7cdff;
+    --chart-grid: #2c2c2a;
+    --chart-axis: #383835;
+    --chart-muted: #898781;
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --series-3: #199e70;
+    --series-prev: #5a5955;
+    --status-good-text: #0ca30c;
+    --status-good-soft: rgba(12, 163, 12, 0.14);
+    --status-warning-text: #fab219;
+    --status-warning-soft: rgba(250, 178, 25, 0.14);
+    --status-critical-text: #f07c7c;
+    --status-critical-soft: rgba(208, 59, 59, 0.18);
+    --status-info-text: #86b6ef;
+    --status-info-soft: rgba(57, 135, 229, 0.16);
+    --shadow-card: 0 0 0 1px rgba(255, 255, 255, 0.02);
+    --shadow-pop: 0 10px 30px -10px rgba(0, 0, 0, 0.7);
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --background: #0d0d0d;
+  --surface: #1a1a19;
+  --surface-raised: #222220;
+  --surface-sunken: #141413;
+  --foreground: #f0efec;
+  --foreground-secondary: #c3c2b7;
+  --muted-foreground: #98968f;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.16);
+  --primary: #818cf8;
+  --primary-hover: #a5b4fc;
+  --primary-foreground: #0d0d0d;
+  --primary-soft: rgba(129, 140, 248, 0.14);
+  --primary-soft-foreground: #c7cdff;
+  --ring: rgba(129, 140, 248, 0.5);
+  --sidebar: #121211;
+  --sidebar-active: rgba(129, 140, 248, 0.14);
+  --sidebar-active-foreground: #c7cdff;
+  --chart-grid: #2c2c2a;
+  --chart-axis: #383835;
+  --chart-muted: #898781;
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --series-3: #199e70;
+  --series-prev: #5a5955;
+  --status-good-text: #0ca30c;
+  --status-good-soft: rgba(12, 163, 12, 0.14);
+  --status-warning-text: #fab219;
+  --status-warning-soft: rgba(250, 178, 25, 0.14);
+  --status-critical-text: #f07c7c;
+  --status-critical-soft: rgba(208, 59, 59, 0.18);
+  --status-info-text: #86b6ef;
+  --status-info-soft: rgba(57, 135, 229, 0.16);
+  --shadow-card: 0 0 0 1px rgba(255, 255, 255, 0.02);
+  --shadow-pop: 0 10px 30px -10px rgba(0, 0, 0, 0.7);
+}
+
+@theme inline {
+  --font-sans: "Inter Variable", system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-foreground: var(--foreground);
+  --color-foreground-secondary: var(--foreground-secondary);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-soft: var(--primary-soft);
+  --color-primary-soft-foreground: var(--primary-soft-foreground);
+  --color-ring: var(--ring);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-active: var(--sidebar-active);
+  --color-sidebar-active-foreground: var(--sidebar-active-foreground);
+  --color-good: var(--status-good);
+  --color-good-text: var(--status-good-text);
+  --color-good-soft: var(--status-good-soft);
+  --color-warning: var(--status-warning);
+  --color-warning-text: var(--status-warning-text);
+  --color-warning-soft: var(--status-warning-soft);
+  --color-critical: var(--status-critical);
+  --color-critical-text: var(--status-critical-text);
+  --color-critical-soft: var(--status-critical-soft);
+  --color-info-text: var(--status-info-text);
+  --color-info-soft: var(--status-info-soft);
+
+  --shadow-card: var(--shadow-card);
+  --shadow-pop: var(--shadow-pop);
+
+  --radius-card: 14px;
+}
+
+@layer base {
+  html {
+    font-family: var(--font-sans);
+    font-feature-settings: "cv11", "ss01";
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    background: var(--background);
+    color: var(--foreground);
+  }
+
+  *,
+  ::before,
+  ::after {
+    border-color: var(--border);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}

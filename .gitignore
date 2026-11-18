@@ -1,0 +1,49 @@
+# Node
+node_modules/
+dist/
+.next/
+coverage/
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+*.keystore
+*.jks
+local.properties
+
+# Android / Gradle
+.gradle/
+build/
+captures/
+*.apk
+*.aab
+.externalNativeBuild/
+.cxx/
+
+# IDEs
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Claude Code (configurações locais)
+.claude/settings.local.json
+
+# .NET
+bin/
+obj/
+*.user
+TestResults/
+appsettings.*.local.json
+
+# Dev keys
+infra/**/keys/
+
+# Playwright
+test-results/
+playwright-report/

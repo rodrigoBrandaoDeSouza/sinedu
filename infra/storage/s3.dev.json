@@ -1,0 +1,14 @@
+{
+  "identities": [
+    {
+      "name": "sinedu-dev",
+      "credentials": [
+        {
+          "accessKey": "sinedu-dev",
+          "secretKey": "sinedu-dev-secret"
+        }
+      ],
+      "actions": ["Admin", "Read", "List", "Tagging", "Write"]
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Sinedu.Platform.Billing/Sinedu.Platform.Billing.csproj" />
+    <Project Path="src/Sinedu.Platform.Host/Sinedu.Platform.Host.csproj" />
+    <Project Path="src/Sinedu.Platform.Identity/Sinedu.Platform.Identity.csproj" />
+    <Project Path="src/Sinedu.Platform.Metrics/Sinedu.Platform.Metrics.csproj" />
+    <Project Path="src/Sinedu.Platform.Support/Sinedu.Platform.Support.csproj" />
+    <Project Path="src/Sinedu.Platform.Tenants/Sinedu.Platform.Tenants.csproj" />
+    <Project Path="src/Sinedu.SharedKernel/Sinedu.SharedKernel.csproj" />
+    <Project Path="src/Sinedu.Tenant.Access/Sinedu.Tenant.Access.csproj" />
+    <Project Path="src/Sinedu.Tenant.Analytics/Sinedu.Tenant.Analytics.csproj" />
+    <Project Path="src/Sinedu.Tenant.Host/Sinedu.Tenant.Host.csproj" />
+    <Project Path="src/Sinedu.Tenant.Imports/Sinedu.Tenant.Imports.csproj" />
+    <Project Path="src/Sinedu.Tenant.Notifications/Sinedu.Tenant.Notifications.csproj" />
+    <Project Path="src/Sinedu.Tenant.Occurrences/Sinedu.Tenant.Occurrences.csproj" />
+    <Project Path="src/Sinedu.Tenant.ProtectedRecords/Sinedu.Tenant.ProtectedRecords.csproj" />
+    <Project Path="src/Sinedu.Tenant.School/Sinedu.Tenant.School.csproj" />
+    <Project Path="src/Sinedu.Tenant.Students/Sinedu.Tenant.Students.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Sinedu.ArchitectureTests/Sinedu.ArchitectureTests.csproj" />
+    <Project Path="tests/Sinedu.IntegrationTests/Sinedu.IntegrationTests.csproj" />
+    <Project Path="tests/Sinedu.UnitTests/Sinedu.UnitTests.csproj" />
+  </Folder>
+</Solution>
