@@ -2,7 +2,7 @@
 
 Ordenado por dependência. Cada item é um incremento executável (migration + API + front + testes + docs, quando aplicável). `Dep.` lista o que precisa estar pronto antes.
 
-Legenda: 🔒 segurança bloqueante · 🧪 inclui teste de negação/isolamento obrigatório
+Legenda: 🔒 segurança bloqueante · 🧪 inclui teste de negação/isolamento obrigatório · ✅ concluído · 🟡 parcial
 
 ## Fase 0 — Esqueleto
 
@@ -19,27 +19,27 @@ Legenda: 🔒 segurança bloqueante · 🧪 inclui teste de negação/isolamento
 
 | ID | Item | Dep. |
 |----|------|------|
-| F1-01 | Banco `sinedu_platform`: `tenants`, `networks`, `reserved_slugs` | F0-02 |
-| F1-02 🔒 | Provisionamento de escola (job idempotente): banco + papéis de banco, migrations, chave Transit, bucket, seeds | F1-01 |
-| F1-03 🔒🧪 | Tenant.Host: resolução de tenant pelo host, cache do registro, `TenantContext`, `DbContext` por escola, bloqueio de escola suspensa/encerrada ou com schema divergente | F1-02 |
-| F1-04 🔒 | Contas da plataforma: Argon2id, bloqueio por tentativas, TOTP + códigos de recuperação, recuperação de senha | F1-01 |
-| F1-05 🔒 | `conta.`: OpenIddict (Authorization Code + PKCE), validação de `redirect_uri` contra o registro de escolas, `user_tenant_memberships`, escolha de escola | F1-04 |
-| F1-06 🔒🧪 | Login na escola: cliente OIDC, cookie `__Host-`, sessões revogáveis, checagem de `tenant_id` da sessão contra o host, logout | F1-03, F1-05 |
-| F1-07 🔒 | Step-up (`auth_time` ≤ 15 min, `max_age=0`) | F1-06 |
-| F1-08 🔒🧪 | Papéis da escola (`access.user_roles`), sincronização de vínculo com a plataforma, framework de policies, resposta 404 fora do escopo | F1-06 |
-| F1-09 🔒 | Auditoria append-only na escola e na plataforma | F1-02 |
-| F1-10 🔒 | `IEnvelopeCipher` (AES-256-GCM + AAD) e `IKeyProvider` (Vault Transit por escola; fake em testes unitários) | F0-02 |
-| F1-11 🔒🧪 | Harness de testes: provisiona **duas escolas** em Testcontainers, fábrica de usuários por papel; `PermissionMatrixTests` e `TenantIsolationTests` prontos para receber endpoints | F1-08 |
-| F1-12 🔒 | Convites: primeiro Diretor (pela plataforma) e convites internos da escola, com as salvaguardas da matriz §4 | F1-08 |
-| F1-13 | Front escola: layout, rotas protegidas, troca de escola, tratamento de 401/step-up | F1-07 |
+| F1-01 ✅ | Banco `sinedu_platform`: `tenants`, `networks`, `reserved_slugs` | F0-02 |
+| F1-02 🔒 ✅ | Provisionamento de escola (job idempotente): banco + papéis de banco, migrations, chave Transit, bucket, seeds | F1-01 |
+| F1-03 🔒🧪 ✅ | Tenant.Host: resolução de tenant pelo host, cache do registro, `TenantContext`, `DbContext` por escola, bloqueio de escola suspensa/encerrada ou com schema divergente | F1-02 |
+| F1-04 🔒 ✅ | Contas da plataforma: Argon2id, bloqueio por tentativas, TOTP + códigos de recuperação, recuperação de senha | F1-01 |
+| F1-05 🔒 ✅ | `conta.`: OpenIddict (Authorization Code + PKCE), validação de `redirect_uri` contra o registro de escolas, `user_tenant_memberships`, escolha de escola | F1-04 |
+| F1-06 🔒🧪 ✅ | Login na escola: cliente OIDC, cookie `__Host-`, sessões revogáveis, checagem de `tenant_id` da sessão contra o host, logout | F1-03, F1-05 |
+| F1-07 🔒 ✅ | Step-up (`auth_time` ≤ 15 min, `max_age=0`) | F1-06 |
+| F1-08 🔒🧪 ✅ | Papéis da escola (`access.user_roles`), sincronização de vínculo com a plataforma, framework de policies, resposta 404 fora do escopo | F1-06 |
+| F1-09 🔒 ✅ | Auditoria append-only na escola e na plataforma | F1-02 |
+| F1-10 🔒 ✅ | `IEnvelopeCipher` (AES-256-GCM + AAD) e `IKeyProvider` (Vault Transit por escola; fake em testes unitários) | F0-02 |
+| F1-11 🔒🧪 ✅ | Harness de testes: provisiona **duas escolas** em Testcontainers, fábrica de usuários por papel; `PermissionMatrixTests` e `TenantIsolationTests` prontos para receber endpoints | F1-08 |
+| F1-12 🔒 ✅ | Convites: primeiro Diretor (pela plataforma) e convites internos da escola, com as salvaguardas da matriz §4 | F1-08 |
+| F1-13 ✅ | Front escola: layout, rotas protegidas, troca de escola, tratamento de 401/step-up | F1-07 |
 
 ## Fase P — Painel gerencial (pode correr em paralelo com as fases 2–5)
 
 | ID | Item | Dep. |
 |----|------|------|
-| P-01 | Login no `painel.` (contas de plataforma, MFA obrigatório), papéis SUPER_ADMIN/SUPORTE | F1-05 |
-| P-02 | Escolas: listar, cadastrar (slug validado), acompanhar provisionamento, tentar de novo em caso de falha | P-01, F1-02 |
-| P-03 | Suspender/reativar escola, com motivo e auditoria | P-02 |
+| P-01 ✅ | Login no `painel.` (contas de plataforma, MFA obrigatório), papéis SUPER_ADMIN/SUPORTE | F1-05 |
+| P-02 ✅ | Escolas: listar, cadastrar (slug validado), acompanhar provisionamento, tentar de novo em caso de falha | P-01, F1-02 |
+| P-03 ✅ | Suspender/reativar escola, com motivo e auditoria | P-02 |
 | P-04 | Redes (cadastro e vínculo com escolas) | P-02 |
 | P-05 | Migrations: versão de schema por escola, atualização em lote | P-02 |
 | P-06 | Planos e pagantes | P-01 |
@@ -65,7 +65,7 @@ Legenda: 🔒 segurança bloqueante · 🧪 inclui teste de negação/isolamento
 | F2-07 🧪 | Escopo de aluno para Professor/Consulta | F2-03, F2-04, F2-05 |
 | F2-08 🧪 | Busca de alunos paginada e restrita ao escopo | F2-07 |
 | F2-09 | Front: períodos, turmas, lista de alunos, painel do aluno (sem abas sensíveis) | F2-01..F2-08 |
-| F2-10 | Front: administração da escola (usuários, convites, vínculos, categorias, aprovação de suporte) | F1-12, F2-03, P-11 |
+| F2-10 🟡 | Front: administração da escola (usuários, convites, vínculos, categorias, aprovação de suporte) — usuários e convites prontos | F1-12, F2-03, P-11 |
 | F2-11 | Contrato OpenAPI + cliente TypeScript gerado | F2-05 |
 
 ## Fase 3 — Importação

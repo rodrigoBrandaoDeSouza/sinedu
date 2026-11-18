@@ -30,6 +30,11 @@ export function OverviewPage() {
     <>
       <PageHeader
         title="Visão geral"
+        eyebrow={
+          <Badge tone="warning" icon>
+            Dados fictícios — métricas e financeiro reais nos itens P-06 a P-10
+          </Badge>
+        }
         description="Escolas, uso e financeiro da plataforma. O painel nunca exibe dados de alunos — só contagens."
         actions={
           <Button variant="primary">

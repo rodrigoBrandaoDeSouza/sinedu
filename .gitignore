@@ -47,3 +47,7 @@ infra/**/keys/
 # Playwright
 test-results/
 playwright-report/
+
+# Arquivos reais recebidos das escolas (dados pessoais): nunca versionar.
+# Amostras anonimizadas vão para .doc/amostras/.
+.doc/files/

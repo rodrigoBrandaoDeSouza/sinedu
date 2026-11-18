@@ -22,6 +22,8 @@ import {
 import { AlertTriangle, CheckCircle2, ClipboardList, Download, GraduationCap, Plus, UserRound, XCircle } from "lucide-react";
 import { useState } from "react";
 import { fetchDashboard, type DashboardFilters } from "../data/dashboard";
+import { useHasRole } from "../lib/session";
+import { WelcomePage } from "./welcome-page";
 
 const yearOptions = [
   { value: "2026", label: "2026" },
@@ -51,6 +53,11 @@ function delta(current: number, previous: number, upIs: StatDelta["upIs"], compa
 }
 
 export function DashboardPage() {
+  const pedagogical = useHasRole("DIRETOR", "PEDAGOGO");
+  return pedagogical ? <PedagogicalDashboard /> : <WelcomePage />;
+}
+
+function PedagogicalDashboard() {
   const [filters, setFilters] = useState<DashboardFilters>({ year: "2026", term: "4", classroom: "all", category: "all" });
   const { data, isFetching } = useQuery({
     queryKey: ["dashboard", filters],
@@ -65,6 +72,11 @@ export function DashboardPage() {
     <>
       <PageHeader
         title="Visão geral"
+        eyebrow={
+          <Badge tone="warning" icon>
+            Dados fictícios — indicadores reais no item F6-01
+          </Badge>
+        }
         description="Indicadores pedagógicos do bimestre. Contam apenas ocorrências registradas, pela data do fato e pela turma da época."
         actions={
           <>

@@ -14,6 +14,9 @@ export default defineConfig({
     allowedHosts: [".localhost"],
     proxy: {
       "/api": { target: "http://localhost:5100", changeOrigin: false },
+      "/auth": { target: "http://localhost:5100", changeOrigin: false },
+      "/signin-oidc": { target: "http://localhost:5100", changeOrigin: false },
+      "/signout-callback-oidc": { target: "http://localhost:5100", changeOrigin: false },
     },
   },
   test: {

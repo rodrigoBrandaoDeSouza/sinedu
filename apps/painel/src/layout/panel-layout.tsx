@@ -1,6 +1,8 @@
-import { AppShell, Badge, Button, ThemeToggle, type NavSection } from "@sinedu/ui";
-import { Bell, Building2, FileText, Gauge, LifeBuoy, Network, Receipt, ScrollText, Settings, ShieldCheck } from "lucide-react";
+import { AppShell, Button, postNavigate, ThemeToggle, type NavSection } from "@sinedu/ui";
+import { Bell, Building2, FileText, Gauge, LifeBuoy, LogOut, Network, Receipt, ScrollText, Settings, ShieldCheck } from "lucide-react";
 import { Outlet } from "react-router";
+import { useSession } from "../lib/session";
+import { SessionProvider } from "../lib/session-provider";
 
 const sections: NavSection[] = [
   { items: [{ to: "/", label: "Visão geral", icon: Gauge, end: true }] },
@@ -16,7 +18,7 @@ const sections: NavSection[] = [
     title: "Financeiro",
     items: [
       { to: "/contratos", label: "Contratos", icon: FileText },
-      { to: "/faturas", label: "Faturas", icon: Receipt, badge: "1" },
+      { to: "/faturas", label: "Faturas", icon: Receipt },
     ],
   },
   {
@@ -30,6 +32,21 @@ const sections: NavSection[] = [
 ];
 
 export function PanelLayout() {
+  return (
+    <SessionProvider
+      fallback={
+        <div className="grid min-h-dvh place-items-center bg-background" aria-busy="true" aria-label="Carregando">
+          <span className="size-8 animate-spin rounded-full border-2 border-border-strong border-t-primary" />
+        </div>
+      }
+    >
+      <PanelShell />
+    </SessionProvider>
+  );
+}
+
+function PanelShell() {
+  const me = useSession();
   return (
     <AppShell
       brand={{
@@ -45,9 +62,6 @@ export function PanelLayout() {
       searchPlaceholder="Buscar escola, rede ou contrato"
       topbarActions={
         <>
-          <Badge tone="warning" icon className="hidden md:inline-flex">
-            Dados fictícios
-          </Badge>
           <ThemeToggle className="hidden sm:inline-flex" />
           <Button variant="ghost" size="icon" aria-label="Notificações">
             <Bell />
@@ -56,11 +70,20 @@ export function PanelLayout() {
       }
       sidebarFooter={
         <div className="flex items-center gap-3 rounded-lg px-2 py-1.5">
-          <span className="grid size-8 place-items-center rounded-full bg-foreground text-xs font-semibold text-background">SA</span>
-          <div className="min-w-0 leading-tight">
-            <p className="truncate text-sm font-medium text-foreground">Super admin</p>
-            <p className="truncate text-xs text-muted-foreground">MFA ativo</p>
+          <span className="grid size-8 shrink-0 place-items-center rounded-full bg-foreground text-xs font-semibold text-background">
+            {me.name
+              .split(" ")
+              .slice(0, 2)
+              .map((w) => w[0])
+              .join("")}
+          </span>
+          <div className="min-w-0 flex-1 leading-tight">
+            <p className="truncate text-sm font-medium text-foreground">{me.name}</p>
+            <p className="truncate text-xs text-muted-foreground">{me.roles.includes("SUPER_ADMIN") ? "Super admin" : "Suporte"} · MFA ativo</p>
           </div>
+          <Button variant="ghost" size="icon-sm" aria-label="Sair" title="Sair" onClick={() => postNavigate("/auth/logout")}>
+            <LogOut />
+          </Button>
         </div>
       }
     >

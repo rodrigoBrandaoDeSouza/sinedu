@@ -66,12 +66,14 @@ sinedu/
 │   │   │   ├── Sinedu.Platform.Host/        # conta. + painel. (API)
 │   │   │   ├── Sinedu.Platform.<Modulo>/    # Identity, Tenants, Billing, Metrics, Support
 │   │   │   ├── Sinedu.Tenant.Host/          # {escola}. (API)
-│   │   │   └── Sinedu.Tenant.<Modulo>/      # Access, School, Students, ProtectedRecords,
-│   │   │                                    # Occurrences, Notifications, Imports, Analytics
+│   │   │   ├── Sinedu.Tenant.<Modulo>/      # Access, School, Students, ProtectedRecords,
+│   │   │   │                                # Occurrences, Notifications, Imports, Analytics
+│   │   │   └── Sinedu.Tenant.Migrations/    # aplica o schema da escola + GRANTs (usado pela plataforma)
 │   │   └── tests/
 │   │       ├── Sinedu.UnitTests/
 │   │       ├── Sinedu.ArchitectureTests/
-│   │       └── Sinedu.IntegrationTests/     # matriz, isolamento entre escolas, vazamento
+│   │       └── Sinedu.IntegrationTests/     # Testcontainers: 2 escolas reais, matriz, isolamento
+│   ├── conta/                # SPA do login único
 │   ├── web/                  # SPA da escola
 │   ├── painel/               # SPA do painel
 │   └── android/              # (pós-MVP)
@@ -93,17 +95,32 @@ docker compose -f infra/docker-compose.yml up -d
 # API (warnings são erros de build)
 dotnet build apps/api/Sinedu.slnx
 dotnet test apps/api/Sinedu.slnx
+dotnet run --project apps/api/src/Sinedu.Platform.Host -- migrate seed-dev   # banco + contas e escolas fictícias
 dotnet run --project apps/api/src/Sinedu.Platform.Host   # :5100 → conta.localhost / painel.localhost
 dotnet run --project apps/api/src/Sinedu.Tenant.Host     # :5200 → {escola}.localhost
 
+# Migration nova (sempre com --context e --output-dir Migrations)
+dotnet ef migrations add <Nome> --project apps/api/src/Sinedu.Tenant.<Modulo> \
+  --startup-project apps/api/src/Sinedu.Tenant.Host --context <Modulo>DbContext --output-dir Migrations
+
 # Fronts (npm workspaces, rodar na raiz)
 npm install
+npm run dev:conta      # http://conta.localhost:5175
 npm run dev:web        # http://escola-demo.localhost:5173
 npm run dev:painel     # http://painel.localhost:5174
 npm run lint && npm run typecheck && npm test && npm run build
 ```
 
-Em desenvolvimento, `*.localhost` resolve para 127.0.0.1 sem configurar DNS. O Vite repassa `/api` mantendo o `Host`, e a API identifica a escola pelo subdomínio.
+Em desenvolvimento, `*.localhost` resolve para 127.0.0.1 sem configurar DNS. O Vite repassa `/api`, `/auth` e os callbacks do OIDC mantendo o `Host`, e a API identifica a escola pelo subdomínio. Contas de dev e o segredo TOTP estão no [README](README.md).
+
+## Regras de implementação (backend)
+
+- **Novo schema/tabela de escola:** migration no módulo, registrar o `DbContext` em `TenantSchemaMigrator` (migrate + GRANTs) e **incrementar `TenantSchema.Version`**. Escola com versão diferente fica em manutenção até o painel rodar a atualização.
+- **DbContext de escola** sempre via `AddTenantDbContext<T>()`: a conexão vem da escola resolvida pelo host. Nunca montar connection string de escola à mão.
+- **Endpoint novo da escola:** política explícita (`Policies.*`) e linha(s) em `PermissionMatrixTests` para todos os papéis + anônimo. A política padrão é negar quem não tem papel.
+- **Endpoint da plataforma:** `MapPanelApi`/`MapAccountApi` (host errado → 404 antes da autenticação).
+- **Ações sensíveis** gravam `IAuditLog` (sem conteúdo).
+- **Rotas que mudam estado** com cookie exigem mesma origem (`SameOriginMiddleware`); chamadas serviço→serviço usam token Bearer.
 
 ## Front-end
 

@@ -1,0 +1,5 @@
+@import "tailwindcss";
+@import "@sinedu/ui/theme.css";
+
+/* Componentes do pacote compartilhado também geram classes. */
+@source "../../../packages/ui/src";

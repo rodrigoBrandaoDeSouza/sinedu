@@ -27,6 +27,9 @@ public static class WebDefaults
             .Enrich.FromLogContext()
             .WriteTo.Console(new RenderedCompactJsonFormatter()));
 
+        // Enums como texto na API (contrato legível e estável).
+        builder.Services.ConfigureHttpJsonOptions(o => o.SerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter()));
+
         builder.Services.AddProblemDetails(options =>
             options.CustomizeProblemDetails = ctx =>
             {

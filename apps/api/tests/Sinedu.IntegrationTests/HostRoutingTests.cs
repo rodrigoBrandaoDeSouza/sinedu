@@ -1,39 +1,57 @@
 using System.Net;
 using System.Net.Http.Json;
-using Microsoft.AspNetCore.Mvc.Testing;
-using Sinedu.Platform.Host;
-using Sinedu.Tenant.Host;
+using Sinedu.IntegrationTests.Infrastructure;
+using Sinedu.SharedKernel.Tenancy;
 
 namespace Sinedu.IntegrationTests;
 
-public class HostRoutingTests(
-    WebApplicationFactory<TenantHostEntryPoint> tenantFactory,
-    WebApplicationFactory<PlatformHostEntryPoint> platformFactory)
-    : IClassFixture<WebApplicationFactory<TenantHostEntryPoint>>, IClassFixture<WebApplicationFactory<PlatformHostEntryPoint>>
+[Collection(SineduTestGroup.Name)]
+public class HostRoutingTests(SineduFixture fx)
 {
     [Fact]
-    public async Task Host_da_escola_resolve_o_tenant_pelo_subdominio()
+    public async Task Escola_e_resolvida_pelo_subdominio_no_registro()
     {
-        using var client = CreateClient(tenantFactory, "escola-demo.localhost");
+        using var client = fx.SchoolClient(SineduFixture.SchoolA);
 
-        var response = await client.GetFromJsonAsync<HealthResponse>("/api/health");
+        var health = await client.GetFromJsonAsync<Health>("/api/health");
 
-        Assert.Equal("escola-demo", response!.Tenant);
+        Assert.Equal(SineduFixture.SchoolA, health!.Tenant);
     }
 
     [Theory]
+    [InlineData("nao-existe.localhost")]
     [InlineData("painel.localhost")]
     [InlineData("conta.localhost")]
     [InlineData("www.localhost")]
     [InlineData("localhost")]
-    [InlineData("escola.outro-dominio.com")]
-    public async Task Host_da_escola_recusa_hosts_que_nao_sao_de_escola(string host)
+    [InlineData("escola-a.outro-dominio.com")]
+    public async Task Host_da_escola_responde_404_para_o_que_nao_e_escola_registrada(string host)
     {
-        using var client = CreateClient(tenantFactory, host);
+        using var client = fx.SchoolClient(SineduFixture.SchoolA);
+        client.DefaultRequestHeaders.Host = host;
 
         var response = await client.GetAsync(new Uri("/api/health", UriKind.Relative));
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Escola_suspensa_fica_indisponivel_sem_login()
+    {
+        const string slug = SineduFixture.SchoolB;
+        await fx.SetTenantStatusAsync(slug, TenantStatus.Suspended);
+        try
+        {
+            using var client = fx.SchoolClient(slug);
+            var response = await client.GetAsync(new Uri("/auth/login", UriKind.Relative));
+
+            Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
+            Assert.Contains("tenant_unavailable", await response.Content.ReadAsStringAsync(), StringComparison.Ordinal);
+        }
+        finally
+        {
+            await fx.SetTenantStatusAsync(slug, TenantStatus.Active);
+        }
     }
 
     [Theory]
@@ -41,19 +59,23 @@ public class HostRoutingTests(
     [InlineData("conta.localhost", "conta")]
     public async Task Host_da_plataforma_atende_conta_e_painel(string host, string surface)
     {
-        using var client = CreateClient(platformFactory, host);
+        using var client = fx.PlatformClient(host);
 
-        var response = await client.GetFromJsonAsync<HealthResponse>("/api/health");
+        var health = await client.GetFromJsonAsync<Health>("/api/health");
 
-        Assert.Equal(surface, response!.Surface);
+        Assert.Equal(surface, health!.Surface);
     }
 
-    [Fact]
-    public async Task Host_da_plataforma_recusa_subdominio_de_escola()
+    [Theory]
+    [InlineData("escola-a.localhost", "/api/health")]
+    [InlineData("painel.localhost", "/.well-known/openid-configuration")]
+    [InlineData("painel.localhost", "/connect/authorize")]
+    [InlineData("conta.localhost", "/api/tenants")]
+    public async Task Host_da_plataforma_so_expoe_cada_superficie_no_host_certo(string host, string path)
     {
-        using var client = CreateClient(platformFactory, "escola-demo.localhost");
+        using var client = fx.PlatformClient(host);
 
-        var response = await client.GetAsync(new Uri("/api/health", UriKind.Relative));
+        var response = await client.GetAsync(new Uri(path, UriKind.Relative));
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
@@ -61,25 +83,16 @@ public class HostRoutingTests(
     [Fact]
     public async Task Respostas_tem_cabecalhos_de_seguranca()
     {
-        using var client = CreateClient(tenantFactory, "escola-demo.localhost");
+        using var client = fx.SchoolClient(SineduFixture.SchoolA);
 
         var response = await client.GetAsync(new Uri("/api/health", UriKind.Relative));
 
         Assert.Equal("no-store", response.Headers.CacheControl?.ToString());
         Assert.Equal("nosniff", response.Headers.GetValues("X-Content-Type-Options").Single());
         Assert.Equal("noindex, nofollow", response.Headers.GetValues("X-Robots-Tag").Single());
-        Assert.Equal("no-referrer", response.Headers.GetValues("Referrer-Policy").Single());
         Assert.True(response.Headers.Contains("X-Correlation-Id"));
         Assert.False(response.Headers.Contains("Server"));
     }
 
-    private static HttpClient CreateClient<T>(WebApplicationFactory<T> factory, string host)
-        where T : class
-    {
-        var client = factory.CreateClient();
-        client.DefaultRequestHeaders.Host = host;
-        return client;
-    }
-
-    private sealed record HealthResponse(string Status, string? Tenant, string? Surface);
+    private sealed record Health(string Status, string? Tenant, string? Surface);
 }

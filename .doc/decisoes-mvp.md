@@ -78,3 +78,11 @@ Interpretações feitas na arquitetura. Valem como padrão até serem confirmada
 - [ ] Prazos de retenção e descarte — definir com as redes e assessoria LGPD.
 - [ ] Amostras anonimizadas de importação (D7), necessárias antes da Fase 3.
 - [ ] Modelo de texto padrão das comunicações aos responsáveis.
+
+### Pendências técnicas da Fase 1 (antes da homologação — F6-08)
+
+- [ ] **Chaves do OIDC:** hoje são efêmeras (reiniciar a plataforma invalida tokens em trânsito). Produção precisa de certificados de assinatura/criptografia persistentes.
+- [ ] **PgBouncer para bancos de escola:** em dev a aplicação conecta direto no PostgreSQL. Em produção, configurar `auth_query` no PgBouncer para os papéis `t_*_app`.
+- [ ] **Papel de leitura do registro:** o Tenant.Host lê `tenants.v_registry` com um papel próprio, só com `SELECT` nessa view (em dev usa o usuário do Postgres).
+- [ ] **Vault em produção:** autenticação AppRole por host, com as políticas `sinedu-platform` e `sinedu-tenant-app` de `infra/vault/policies`.
+- [ ] **Proxy reverso:** `UseForwardedHeaders` + Caddy com certificado wildcard.

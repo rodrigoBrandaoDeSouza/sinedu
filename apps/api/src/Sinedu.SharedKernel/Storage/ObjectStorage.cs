@@ -1,0 +1,62 @@
+using Amazon.Runtime;
+using Amazon.S3;
+using Amazon.S3.Model;
+using Microsoft.Extensions.Options;
+
+namespace Sinedu.SharedKernel.Storage;
+
+public interface IObjectStorage
+{
+    Task EnsureBucketAsync(string bucket, CancellationToken cancellationToken = default);
+
+    Task DeleteBucketAsync(string bucket, CancellationToken cancellationToken = default);
+}
+
+public sealed class S3Options
+{
+    public const string Section = "Storage";
+
+    public Uri ServiceUrl { get; set; } = new("http://localhost:8333");
+
+    public string AccessKey { get; set; } = "";
+
+    public string SecretKey { get; set; } = "";
+}
+
+/// <summary>Armazenamento S3-compatível (SeaweedFS em dev). Um bucket por escola.</summary>
+public sealed class S3ObjectStorage : IObjectStorage, IDisposable
+{
+    private readonly AmazonS3Client _client;
+
+    public S3ObjectStorage(IOptions<S3Options> options)
+    {
+        var o = options.Value;
+        _client = new AmazonS3Client(
+            new BasicAWSCredentials(o.AccessKey, o.SecretKey),
+            new AmazonS3Config { ServiceURL = o.ServiceUrl.ToString(), ForcePathStyle = true, AuthenticationRegion = "us-east-1" });
+    }
+
+    public async Task EnsureBucketAsync(string bucket, CancellationToken cancellationToken = default)
+    {
+        var existing = await _client.ListBucketsAsync(cancellationToken);
+        if (existing.Buckets?.Any(b => b.BucketName == bucket) == true)
+        {
+            return;
+        }
+
+        await _client.PutBucketAsync(new PutBucketRequest { BucketName = bucket }, cancellationToken);
+    }
+
+    public async Task DeleteBucketAsync(string bucket, CancellationToken cancellationToken = default)
+    {
+        var objects = await _client.ListObjectsV2Async(new ListObjectsV2Request { BucketName = bucket }, cancellationToken);
+        foreach (var obj in objects.S3Objects ?? [])
+        {
+            await _client.DeleteObjectAsync(bucket, obj.Key, cancellationToken);
+        }
+
+        await _client.DeleteBucketAsync(bucket, cancellationToken);
+    }
+
+    public void Dispose() => _client.Dispose();
+}

@@ -1,0 +1,6 @@
+root = false
+
+# Migrations são geradas pelo EF Core: fora das regras de análise.
+[**/Migrations/**.cs]
+generated_code = true
+dotnet_analyzer_diagnostic.severity = none
