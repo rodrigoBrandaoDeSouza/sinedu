@@ -26,6 +26,8 @@ public static class InfrastructureExtensions
         services.AddSingleton<IObjectStorage, S3ObjectStorage>();
 
         services.AddOptions<SmtpOptions>().Bind(configuration.GetSection(SmtpOptions.Section));
+        services.AddMemoryCache();
+        services.AddTransient<SmtpSettingsResolver>();
         services.AddTransient<IEmailSender, SmtpEmailSender>();
 
         return services;

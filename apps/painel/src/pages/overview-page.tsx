@@ -1,180 +1,183 @@
-import { useQuery } from "@tanstack/react-query";
-import {
-  Badge,
-  Button,
-  Card,
-  CardBody,
-  CardHeader,
-  ChartCard,
-  ColumnGroups,
-  format,
-  LineTrend,
-  PageHeader,
-  StatTile,
-} from "@sinedu/ui";
-import { AlertTriangle, Building2, CalendarClock, CircleDollarSign, DatabaseZap, GraduationCap, Plus, Receipt } from "lucide-react";
-import { Link } from "react-router";
-import { fetchOverview, type BillingAlert } from "../data/overview";
-import { TenantTable } from "../components/tenant-table";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Alert, Badge, Button, Card, CardBody, CardHeader, ChartCard, EmptyState, format, LineTrend, PageHeader, StatTile, Table, Td, Th, Tr } from "@sinedu/ui";
+import { AlertTriangle, Building2, CircleDollarSign, DatabaseZap, GraduationCap, MailWarning, Plus, RefreshCw, UsersRound } from "lucide-react";
+import { Link, useNavigate } from "react-router";
+import { formatBytes, metricsApi, type TenantMetrics } from "../lib/metrics-api";
+import { useIsSuperAdmin } from "../lib/session";
 
-const alertIcons: Record<BillingAlert["kind"], typeof AlertTriangle> = {
-  fatura_vencida: Receipt,
-  contrato_vencendo: CalendarClock,
-  limite_excedido: DatabaseZap,
-};
-
+/**
+ * Visão geral da plataforma com as métricas coletadas das escolas (P-10). Só contagens: o painel nunca recebe
+ * nomes, identificadores ou dados de alunos, nem qualquer contagem de Saúde/Proteção.
+ */
 export function OverviewPage() {
-  const { data } = useQuery({ queryKey: ["overview"], queryFn: fetchOverview });
+  const navigate = useNavigate();
+  const superAdmin = useIsSuperAdmin();
+  const client = useQueryClient();
+  const { data, error } = useQuery({ queryKey: ["metrics"], queryFn: metricsApi.overview });
+  const collect = useMutation({ mutationFn: metricsApi.collect, onSuccess: () => client.invalidateQueries({ queryKey: ["metrics"] }) });
+
+  const active = data?.tenants.filter((t) => t.status === "Active") ?? [];
+  const students = active.reduce((s, t) => s + t.activeStudents, 0);
+  const members = active.reduce((s, t) => s + t.activeMembers, 0);
+  const failedEmails = active.reduce((s, t) => s + t.emailsFailedOpen, 0);
+  const alerts = data ? operationalAlerts(data.tenants) : [];
 
   return (
     <>
       <PageHeader
         title="Visão geral"
-        eyebrow={
-          <Badge tone="warning" icon>
-            Dados fictícios — métricas e financeiro reais nos itens P-06 a P-10
-          </Badge>
-        }
-        description="Escolas, uso e financeiro da plataforma. O painel nunca exibe dados de alunos — só contagens."
+        description="Escolas e uso da plataforma. O painel nunca exibe dados de alunos — só contagens por escola."
+        eyebrow={data?.collectedAt ? <Badge tone="neutral">Coleta de {format.shortDate(data.collectedAt)}</Badge> : undefined}
         actions={
-          <Button variant="primary">
-            <Plus />
-            Nova escola
-          </Button>
+          superAdmin ? (
+            <>
+              <Button onClick={() => collect.mutate()} disabled={collect.isPending}>
+                <RefreshCw />
+                {collect.isPending ? "Coletando…" : "Coletar agora"}
+              </Button>
+              <Button variant="primary" onClick={() => navigate("/escolas?nova=1")}>
+                <Plus />
+                Nova escola
+              </Button>
+            </>
+          ) : undefined
         }
       />
 
+      {error ? <Alert tone="critical" title="Não foi possível carregar as métricas." /> : null}
       {!data ? (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-busy="true" aria-label="Carregando">
           {Array.from({ length: 4 }, (_, i) => (
             <div key={i} className="h-[132px] animate-pulse rounded-(--radius-card) border border-border bg-surface" />
           ))}
         </div>
+      ) : data.tenants.length === 0 ? (
+        <EmptyState icon={Building2} title="Nenhuma escola cadastrada" description="Cadastre a primeira escola para começar." />
       ) : (
         <>
           <section aria-label="Resumo" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <StatTile
               label="Escolas ativas"
-              value={data.tenantsByStatus.ativa}
+              value={active.length}
               icon={Building2}
-              hint={`${data.tenantsByStatus.provisionando} provisionando · ${data.tenantsByStatus.suspensa} suspensa`}
+              hint={`${data.tenants.filter((t) => t.status === "Suspended").length} suspensa(s) · ${data.tenants.filter((t) => t.status.startsWith("Provisioning")).length} em provisionamento`}
             />
-            <StatTile
-              label="Alunos ativos"
-              value={format.integer(data.activeStudents)}
-              icon={GraduationCap}
-              delta={{
-                label: `+${format.percent((data.activeStudents - data.activeStudentsPrevious) / data.activeStudentsPrevious, 1)}`,
-                direction: "up",
-                upIs: "good",
-                comparedTo: "vs outubro",
-              }}
-            />
-            <StatTile
-              label="Receita recorrente mensal"
-              value={format.currency(data.monthlyRecurring)}
-              icon={CircleDollarSign}
-              hint="Contratos vigentes"
-            />
-            <StatTile
-              label="Em atraso"
-              value={format.currency(data.overdueAmount)}
-              icon={Receipt}
-              hint={
-                <span className="inline-flex items-center gap-1 text-critical-text">
-                  <AlertTriangle className="size-3.5" aria-hidden />
-                  {data.overdueInvoices} fatura vencida
-                </span>
-              }
-            />
+            <StatTile label="Alunos ativos" value={format.integer(students)} icon={GraduationCap} hint="Soma das escolas ativas" />
+            <StatTile label="Usuários ativos" value={format.integer(members)} icon={UsersRound} hint="Equipes das escolas" />
+            <StatTile label="E-mails com falha" value={format.integer(failedEmails)} icon={MailWarning} hint="Aguardando reenvio nas escolas" />
           </section>
 
           <section className="mt-4 grid gap-4 xl:grid-cols-3">
             <ChartCard
+              className="xl:col-span-2"
               title="Alunos ativos na plataforma"
-              description="Soma das escolas ativas, fim de cada mês"
+              description="Soma das escolas, por dia de coleta"
               table={{
-                columns: [{ label: "Mês" }, { label: "Alunos ativos", align: "right" }],
-                rows: data.studentsTrend.map((p) => [p.month, format.integer(p.students)]),
+                columns: [{ label: "Dia" }, { label: "Alunos ativos", align: "right" }],
+                rows: data.trend.map((p) => [format.shortDate(`${p.day}T12:00:00Z`), format.integer(p.students)]),
               }}
             >
               <LineTrend
-                data={data.studentsTrend}
-                xKey="month"
+                data={data.trend.map((p) => ({ ...p, label: format.shortDate(`${p.day}T12:00:00Z`) }))}
+                xKey="label"
                 series={[{ key: "students", label: "Alunos ativos", color: "var(--series-1)", primary: true }]}
-                formatValue={format.auto}
+                formatValue={format.integer}
               />
             </ChartCard>
-
-            <ChartCard
-              className="xl:col-span-2"
-              title="Faturado x recebido"
-              description="Por mês de competência"
-              legend={[
-                { label: "Faturado", color: "var(--series-1)" },
-                { label: "Recebido", color: "var(--series-3)" },
-              ]}
-              table={{
-                columns: [{ label: "Mês" }, { label: "Faturado", align: "right" }, { label: "Recebido", align: "right" }],
-                rows: data.billing.map((b) => [b.month, format.currency(b.invoiced), format.currency(b.received)]),
-              }}
-            >
-              <ColumnGroups
-                data={data.billing}
-                xKey="month"
-                series={[
-                  { key: "invoiced", label: "Faturado", color: "var(--series-1)" },
-                  { key: "received", label: "Recebido", color: "var(--series-3)" },
-                ]}
-                formatValue={format.currency}
-                formatAxis={format.currencyCompact}
-              />
-            </ChartCard>
-          </section>
-
-          <section className="mt-4 grid gap-4 xl:grid-cols-3">
-            <Card className="xl:col-span-2">
-              <CardHeader
-                title="Escolas"
-                description="Situação, plano e uso de cada escola"
-                actions={
-                  <Link to="/escolas" className="text-sm font-medium text-primary hover:underline">
-                    Ver todas
-                  </Link>
-                }
-              />
-              <div className="mt-4">
-                <TenantTable tenants={data.tenants.slice(0, 5)} compact />
-              </div>
-            </Card>
 
             <Card>
-              <CardHeader title="Alertas" description="Cobrança, contratos e operação" />
+              <CardHeader title="Alertas de operação" description="Atualização de schema, coleta e e-mails" />
               <CardBody>
-                <ul className="space-y-3">
-                  {data.alerts.map((a) => {
-                    const Icon = alertIcons[a.kind];
-                    return (
-                      <li key={a.id} className="flex gap-3 rounded-xl border border-border bg-surface-raised p-3">
+                {alerts.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Nada pendente.</p>
+                ) : (
+                  <ul className="space-y-3">
+                    {alerts.map((a) => (
+                      <li key={a.key} className="flex gap-3 rounded-xl border border-border bg-surface-raised p-3">
                         <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-warning-soft text-warning-text">
-                          <Icon className="size-4" aria-hidden />
+                          <a.icon className="size-4" aria-hidden />
                         </span>
                         <div className="min-w-0">
                           <p className="text-sm font-medium text-foreground">{a.title}</p>
                           <p className="mt-0.5 text-xs text-muted-foreground">{a.detail}</p>
                         </div>
                       </li>
-                    );
-                  })}
-                </ul>
+                    ))}
+                  </ul>
+                )}
                 <div className="mt-4 flex items-center gap-2 text-xs text-muted-foreground">
-                  <Badge tone="outline">Manual</Badge>A suspensão de escolas é sempre uma decisão manual.
+                  <CircleDollarSign className="size-3.5" aria-hidden />
+                  Faturamento aparece aqui quando contratos e faturas estiverem cadastrados (P-06 a P-08).
                 </div>
               </CardBody>
             </Card>
           </section>
+
+          <Card className="mt-4">
+            <CardHeader
+              title="Uso por escola"
+              description="Contagens da última coleta. Nenhum dado de aluno é enviado ao painel."
+              actions={
+                <Link to="/escolas" className="text-sm font-medium text-primary hover:underline">
+                  Gerenciar escolas
+                </Link>
+              }
+            />
+            <div className="mt-4">
+              <Table>
+                <thead>
+                  <tr>
+                    <Th>Escola</Th>
+                    <Th className="text-right">Alunos</Th>
+                    <Th className="text-right">Turmas</Th>
+                    <Th className="text-right">Usuários</Th>
+                    <Th className="text-right">Ocorrências (30 dias)</Th>
+                    <Th className="text-right">E-mails no mês</Th>
+                    <Th className="text-right">Armazenamento</Th>
+                    <Th>Schema</Th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.tenants.map((t) => (
+                    <Tr key={t.tenantId}>
+                      <Td>
+                        <p className="font-medium text-foreground">{t.name}</p>
+                        <p className="font-mono text-xs text-muted-foreground">{t.slug}</p>
+                      </Td>
+                      <Td className="text-right tabular-nums">{format.integer(t.activeStudents)}</Td>
+                      <Td className="text-right tabular-nums">{t.activeClassrooms}</Td>
+                      <Td className="text-right tabular-nums">{t.activeMembers}</Td>
+                      <Td className="text-right tabular-nums">{t.occurrencesLast30Days}</Td>
+                      <Td className="text-right tabular-nums">{t.emailsSentThisMonth}</Td>
+                      <Td className="text-right tabular-nums">{formatBytes(t.commonStorageBytes)}</Td>
+                      <Td>
+                        {t.outdated ? (
+                          <Badge tone="warning" icon>
+                            Desatualizado
+                          </Badge>
+                        ) : (
+                          <Badge tone="good" icon>
+                            Atual
+                          </Badge>
+                        )}
+                      </Td>
+                    </Tr>
+                  ))}
+                </tbody>
+              </Table>
+            </div>
+          </Card>
         </>
       )}
     </>
   );
+}
+
+function operationalAlerts(tenants: TenantMetrics[]) {
+  const list: { key: string; icon: typeof AlertTriangle; title: string; detail: string }[] = [];
+  const outdated = tenants.filter((t) => t.outdated && (t.status === "Active" || t.status === "Suspended"));
+  if (outdated.length) list.push({ key: "schema", icon: DatabaseZap, title: `${outdated.length} escola(s) com schema desatualizado`, detail: "Ficam em manutenção até a atualização em Escolas." });
+  for (const t of tenants.filter((x) => x.error)) list.push({ key: `err-${t.tenantId}`, icon: AlertTriangle, title: `Coleta falhou: ${t.name}`, detail: t.error ?? "" });
+  for (const t of tenants.filter((x) => x.emailsFailedOpen > 0)) list.push({ key: `mail-${t.tenantId}`, icon: MailWarning, title: `${t.emailsFailedOpen} e-mail(s) com falha: ${t.name}`, detail: "A escola pode reenviar em Comunicações." });
+  return list;
 }

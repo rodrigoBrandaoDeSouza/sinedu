@@ -6,7 +6,7 @@ namespace Sinedu.SharedKernel.Tenancy;
 /// </summary>
 public static class TenantSchema
 {
-    public const string Version = "2026.11.18.5";
+    public const string Version = "2026.11.19.1";
 }
 
 public enum TenantStatus
@@ -69,4 +69,14 @@ public interface IAccountInvitations
 {
     /// <summary>Garante a conta, o vínculo com a escola e envia convite (conta nova) ou aviso (conta existente).</summary>
     Task<Guid> InviteToTenantAsync(Guid tenantId, string tenantSlug, string tenantName, string email, string fullName, bool privileged, CancellationToken cancellationToken = default);
+}
+
+/// <summary>Contrato das métricas da plataforma (P-10): papel de banco e colunas da view <c>metrics.v_counts</c>.</summary>
+public static class MetricsContract
+{
+    /// <summary>Papel de banco que só tem SELECT na view de contagens de cada escola.</summary>
+    public const string Role = "sinedu_metrics";
+
+    /// <summary>Senha do papel, no Vault (KV), gerada pela plataforma.</summary>
+    public const string SecretPath = "platform/metrics";
 }

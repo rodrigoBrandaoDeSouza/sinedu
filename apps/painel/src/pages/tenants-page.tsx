@@ -1,7 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Alert, api, ApiError, Badge, Button, Card, Dialog, EmptyState, Input, PageHeader, Select, Table, Td, Th, Tr } from "@sinedu/ui";
-import { Building2, ExternalLink, Pause, Play, Plus, RotateCw } from "lucide-react";
+import { Building2, DatabaseZap, ExternalLink, Mail, Pause, Play, Plus, RotateCw } from "lucide-react";
+import { SmtpDialog } from "../components/smtp-dialog";
 import { useState, type FormEvent } from "react";
+import { useSearchParams } from "react-router";
 import { useIsSuperAdmin } from "../lib/session";
 
 export type TenantStatus = "Provisioning" | "ProvisioningFailed" | "Active" | "Suspended" | "Closing" | "Closed";
@@ -35,7 +37,21 @@ const statusView: Record<TenantStatus, { label: string; tone: "good" | "info" | 
 export function TenantsPage() {
   const superAdmin = useIsSuperAdmin();
   const client = useQueryClient();
-  const [creating, setCreating] = useState(false);
+  const [params, setParams] = useSearchParams();
+  const [smtpFor, setSmtpFor] = useState<{ id: string; displayName: string }>();
+  const [creating, setCreatingState] = useState(params.get("nova") === "1");
+  const setCreating = (open: boolean) => {
+    setCreatingState(open);
+    if (!open && params.has("nova")) setParams({}, { replace: true });
+  };
+  const version = useQuery({ queryKey: ["schema-version"], queryFn: () => api.get<{ schemaVersion: string }>("/api/metrics") });
+  const migrate = useMutation({
+    mutationFn: () => api.post<{ updated: number; error: string | null; version: string }>("/api/tenants/migrate"),
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: ["tenants"] });
+      client.invalidateQueries({ queryKey: ["metrics"] });
+    },
+  });
 
   const { data: tenants, isLoading } = useQuery({
     queryKey: ["tenants"],
@@ -55,6 +71,9 @@ export function TenantsPage() {
     if (reason?.trim()) action.mutate({ id, verb, reason });
   };
 
+  const current = version.data?.schemaVersion;
+  const outdated = tenants?.filter((t) => current && t.schemaVersion !== current && (t.status === "Active" || t.status === "Suspended")) ?? [];
+
   return (
     <>
       <PageHeader
@@ -71,6 +90,23 @@ export function TenantsPage() {
       />
 
       {action.error ? <Alert tone="critical" className="mb-4" title={action.error instanceof ApiError ? action.error.message : "Ação não concluída."} /> : null}
+
+      {outdated.length > 0 ? (
+        <Alert tone="warning" className="mb-4" title={`${outdated.length} escola(s) com o banco desatualizado`}>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <span>Ficam em manutenção (sem acesso) até a atualização para a versão {current}.</span>
+            {superAdmin ? (
+              <Button size="sm" onClick={() => migrate.mutate()} disabled={migrate.isPending}>
+                <DatabaseZap />
+                {migrate.isPending ? "Atualizando…" : "Atualizar escolas"}
+              </Button>
+            ) : null}
+          </div>
+        </Alert>
+      ) : null}
+      {migrate.data ? (
+        <Alert tone={migrate.data.error ? "critical" : "good"} className="mb-4" title={migrate.data.error ? `Atualização parou em ${migrate.data.error}` : `${migrate.data.updated} escola(s) atualizada(s) para ${migrate.data.version}.`} />
+      ) : null}
 
       {!isLoading && tenants?.length === 0 ? (
         <EmptyState icon={Building2} title="Nenhuma escola ainda" description="Cadastre a primeira escola para criar o subdomínio, o banco e convidar a direção." />
@@ -110,9 +146,22 @@ export function TenantsPage() {
                     ) : null}
                   </Td>
                   <Td className="text-foreground-secondary">{t.network ?? "—"}</Td>
-                  <Td className="font-mono text-xs text-foreground-secondary">{t.schemaVersion ?? "—"}</Td>
+                  <Td>
+                    <span className="font-mono text-xs text-foreground-secondary">{t.schemaVersion ?? "—"}</span>
+                    {current && t.schemaVersion && t.schemaVersion !== current ? (
+                      <Badge tone="warning" icon className="ml-2">
+                        Desatualizado
+                      </Badge>
+                    ) : null}
+                  </Td>
                   <Td className="text-foreground-secondary tabular-nums">{new Date(t.createdAt).toLocaleDateString("pt-BR")}</Td>
                   <Td align="right">
+                    {superAdmin && (t.status === "Active" || t.status === "Suspended") ? (
+                      <Button size="sm" variant="ghost" onClick={() => setSmtpFor({ id: t.id, displayName: t.displayName })}>
+                        <Mail />
+                        E-mail
+                      </Button>
+                    ) : null}
                     {superAdmin && t.status === "ProvisioningFailed" ? (
                       <Button size="sm" onClick={() => action.mutate({ id: t.id, verb: "retry" })}>
                         <RotateCw />
@@ -140,6 +189,7 @@ export function TenantsPage() {
       )}
 
       <CreateTenantDialog open={creating} onClose={() => setCreating(false)} />
+      {smtpFor ? <SmtpDialog tenant={smtpFor} onClose={() => setSmtpFor(undefined)} /> : null}
     </>
   );
 }

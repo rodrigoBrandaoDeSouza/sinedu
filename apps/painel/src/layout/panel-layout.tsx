@@ -1,5 +1,5 @@
 import { AppShell, Button, postNavigate, ThemeToggle, type NavSection } from "@sinedu/ui";
-import { Bell, Building2, FileText, Gauge, LifeBuoy, LogOut, Network, Receipt, ScrollText, Settings, ShieldCheck } from "lucide-react";
+import { Bell, Building2, FileText, Gauge, LifeBuoy, LogOut, MailCheck, Network, Receipt, ScrollText, Settings, ShieldCheck } from "lucide-react";
 import { Outlet } from "react-router";
 import { useSession } from "../lib/session";
 import { SessionProvider } from "../lib/session-provider";
@@ -26,6 +26,7 @@ const sections: NavSection[] = [
     items: [
       { to: "/auditoria", label: "Auditoria", icon: ScrollText },
       { to: "/contas", label: "Contas da plataforma", icon: ShieldCheck },
+      { to: "/teste-email", label: "Teste de e-mail", icon: MailCheck },
       { to: "/configuracoes", label: "Configurações", icon: Settings },
     ],
   },

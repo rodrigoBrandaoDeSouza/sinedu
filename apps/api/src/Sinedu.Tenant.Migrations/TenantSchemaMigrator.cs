@@ -78,6 +78,7 @@ public sealed class TenantSchemaMigrator : ITenantSchemaMigrator
 
         await ExecuteAsync(ownerConnectionString, CrossModuleConstraints, cancellationToken);
         await ExecuteAsync(ownerConnectionString, Grants(appRole), cancellationToken);
+        await ExecuteAsync(ownerConnectionString, MetricsView.Statements, cancellationToken);
 
         var info = await infra.SchemaInfo.FirstOrDefaultAsync(cancellationToken);
         if (info is null)

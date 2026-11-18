@@ -127,6 +127,21 @@ Interpretações feitas na arquitetura. Valem como padrão até serem confirmada
 - **Na tela não há supressão:** o dashboard é visto só por quem já tem acesso aos registros individuais. A supressão vale para o que sai do sistema.
 - **Implantação:** imagens próprias (APIs e Caddy com os fronts), certificado wildcard por desafio DNS, `X-Forwarded-*` aceitos só da rede do proxy, certificados OIDC persistentes obrigatórios com cookies seguros, PgBouncer com `auth_query` restrito a `t_*_app`, leitor do registro só com `SELECT` na view e backup por escola cifrado com **age** (chave privada fora da VPS). Primeiro administrador: `create-super-admin`, de uso único.
 
+## Decisões da Fase P (painel) — primeira entrega
+
+- **Métricas (P-10):** cada banco de escola tem a view `metrics.v_counts` com 8 números da escola inteira: alunos ativos, turmas do ano ativo, usuários ativos, ocorrências dos últimos 30 dias, e-mails enviados no mês, e-mails com falha, armazenamento de anexos **comuns** e versão do schema. **Nada de Saúde/Proteção, nem contagem, nem tamanho de anexo protegido.**
+- O papel `sinedu_metrics` (senha gerada no Vault pela plataforma no `migrate`) só tem `CONNECT` e `SELECT` nessa view. O teste confirma que ele não lê nenhuma tabela.
+- **Coleta:** a cada 6 horas (`Metrics:Worker`), ou pelo botão "Coletar agora" (SUPER_ADMIN). Guardamos uma foto por escola a cada coleta, para a evolução de alunos ativos.
+- **Atualização de escolas (P-05):** a página Escolas avisa quando há banco desatualizado (escola em manutenção) e o SUPER_ADMIN atualiza todas em lote.
+- **Contas (P-12):** SUPER_ADMIN convida SUPER_ADMIN ou SUPORTE (e-mail que já tem conta de escola é recusado — D19), retira acesso (ninguém retira o próprio, e o último SUPER_ADMIN não sai), busca qualquer conta pelo e-mail para **desbloquear** ou **reiniciar o MFA**. O reinício exige motivo, derruba as sessões, apaga os códigos de recuperação e avisa a pessoa por e-mail. Tudo na auditoria da plataforma.
+
+## SMTP por escola (painel)
+
+- Cada escola pode ter **SMTP próprio**, configurado pelo SUPER_ADMIN no painel (Escolas → **E-mail**). Fica no Vault em `tenants/{id}/smtp`, junto das credenciais da escola. A senha **nunca volta** para a tela, e campo em branco ao editar mantém a atual.
+- Saem pelo SMTP da escola: comunicações aos responsáveis, avisos de concessão de papel e convites para aquela escola. Saem pelo **SMTP padrão** (configuração do servidor, `Smtp:*`): e-mails das contas da plataforma e de escolas sem SMTP próprio.
+- Uma alteração vale em até 1 minuto para a aplicação da escola (cache).
+- **Teste de e-mail** (painel → Sistema): envia uma mensagem de teste pelo SMTP de uma escola (salvo, ou o do formulário antes de salvar) ou pelo padrão, e mostra a resposta do servidor sem a senha. Os testes ficam na auditoria da plataforma.
+
 ## Pendências (não bloqueiam o início)
 
 - [ ] Domínio definitivo e acesso ao DNS (certificado wildcard via desafio DNS).

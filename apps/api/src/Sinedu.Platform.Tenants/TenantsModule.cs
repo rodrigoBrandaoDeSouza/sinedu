@@ -33,6 +33,7 @@ public sealed class TenantsModule : IModule
     public void MapEndpoints(IEndpointRouteBuilder endpoints)
     {
         var tenants = endpoints.MapPanelApi("/tenants").RequireAuthorization(Policies.PlatformStaff);
+        TenantSmtpEndpoints.Map(tenants);
 
         tenants.MapGet("/", async (TenantsDbContext db, Microsoft.Extensions.Options.IOptions<SineduUrls> urls, CancellationToken ct) =>
         {

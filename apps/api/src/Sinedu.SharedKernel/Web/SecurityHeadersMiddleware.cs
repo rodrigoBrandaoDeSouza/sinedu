@@ -19,7 +19,9 @@ public sealed class SecurityHeadersMiddleware(RequestDelegate next)
             headers.XFrameOptions = "DENY";
             headers.CacheControl = "no-store";
             headers.Pragma = "no-cache";
-            headers["Referrer-Policy"] = "no-referrer";
+            // same-origin: o navegador manda Origin/Referer só para o próprio site (a proteção CSRF depende disso)
+            // e nada para sites externos — URLs com identificadores nunca vazam. no-referrer faria o POST sair com Origin: null.
+            headers["Referrer-Policy"] = "same-origin";
             headers["X-Robots-Tag"] = "noindex, nofollow";
             headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=(), payment=()";
             headers.ContentSecurityPolicy = "default-src 'none'; frame-ancestors 'none'";

@@ -1,6 +1,8 @@
 import type { RouteObject } from "react-router";
 import { PanelLayout } from "./layout/panel-layout";
 import { ComingSoonPage } from "./pages/coming-soon-page";
+import { AccountsPage } from "./pages/accounts-page";
+import { EmailTestPage } from "./pages/email-test-page";
 import { OverviewPage } from "./pages/overview-page";
 import { TenantsPage } from "./pages/tenants-page";
 
@@ -20,7 +22,8 @@ export const routes: RouteObject[] = [
       soon("contratos", "Contratos", "Pagantes, escolas cobertas, vigência e empenho.", "P-07"),
       soon("faturas", "Faturas", "Lançamento, baixa manual e nota fiscal.", "P-08"),
       soon("auditoria", "Auditoria", "Ações realizadas no painel da plataforma.", "F1-09"),
-      soon("contas", "Contas da plataforma", "Super admins e equipe de suporte, com MFA obrigatório.", "P-12"),
+      { path: "contas", element: <AccountsPage /> },
+      { path: "teste-email", element: <EmailTestPage /> },
       soon("configuracoes", "Configurações", "Planos, subdomínios reservados e parâmetros da plataforma.", "P-06"),
       soon("*", "Página não encontrada", "O endereço acessado não existe.", "—"),
     ],

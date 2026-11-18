@@ -160,6 +160,50 @@ public sealed class SineduFixture : IAsyncLifetime
         return client;
     }
 
+    /// <summary>
+    /// Sessão do painel (painel.localhost) para uma conta da plataforma com os papéis indicados, no mesmo formato
+    /// de cookie de produção — passa pela validação real da sessão do painel a cada requisição.
+    /// </summary>
+    public async Task<(Guid UserId, HttpClient Client)> PanelClientAsync(params string[] roles)
+    {
+        var userId = Guid.CreateVersion7();
+        var email = $"plataforma-{userId:N}@sinedu.local";
+        await using (var identity = new IdentityDbContext(new DbContextOptionsBuilder<IdentityDbContext>()
+            .UseSineduPostgres(PlatformConnectionString, IdentityDbContext.Schema).UseOpenIddict().Options))
+        {
+            identity.Users.Add(new UserAccount
+            {
+                Id = userId, Email = email, FullName = "Equipe da plataforma (teste)", Status = AccountStatus.Active, Kind = AccountKind.Platform,
+                MfaEnabled = true, SecurityStamp = Guid.NewGuid(), CreatedAt = DateTimeOffset.UtcNow,
+            });
+            foreach (var role in roles)
+            {
+                identity.PlatformRoles.Add(new PlatformRoleGrant { Id = Guid.CreateVersion7(), UserId = userId, Role = role, GrantedAt = DateTimeOffset.UtcNow });
+            }
+
+            await identity.SaveChangesAsync();
+        }
+
+        var claims = new List<Claim>
+        {
+            new(AccountClaims.Subject, userId.ToString()),
+            new(AccountClaims.Name, "Equipe da plataforma (teste)"),
+            new(AccountClaims.Email, email),
+            new(AccountClaims.Amr, AccountClaims.AmrMfa),
+        };
+        claims.AddRange(roles.Select(r => new Claim(AccountClaims.Role, r)));
+        var options = Platform.Services.GetRequiredService<IOptionsMonitor<CookieAuthenticationOptions>>().Get(AccountSchemes.PanelCookie);
+        var ticket = new AuthenticationTicket(
+            new ClaimsPrincipal(new ClaimsIdentity(claims, AccountSchemes.PanelCookie, AccountClaims.Name, AccountClaims.Role)),
+            new AuthenticationProperties { ExpiresUtc = DateTimeOffset.UtcNow.AddMinutes(30) },
+            AccountSchemes.PanelCookie);
+
+        var client = PlatformClient("painel.localhost");
+        client.DefaultRequestHeaders.Add("Origin", "http://painel.localhost");
+        client.DefaultRequestHeaders.Add("Cookie", $"{options.Cookie.Name}={options.TicketDataFormat.Protect(ticket)}");
+        return (userId, client);
+    }
+
     public HttpClient PlatformClient(string host)
     {
         var client = Platform.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false, HandleCookies = false });
@@ -178,6 +222,11 @@ public sealed class SineduFixture : IAsyncLifetime
         await using var identity = new IdentityDbContext(new DbContextOptionsBuilder<IdentityDbContext>()
             .UseSineduPostgres(PlatformConnectionString, IdentityDbContext.Schema).UseOpenIddict().Options);
         await identity.Database.MigrateAsync();
+        await using (var metrics = PlatformDb<Sinedu.Platform.Metrics.MetricsDbContext>(Sinedu.Platform.Metrics.MetricsDbContext.Schema)) await metrics.Database.MigrateAsync();
+
+        // Papel de métricas antes de provisionar as escolas (como o `migrate` de produção), para os GRANTs da view.
+        var admin = new NpgsqlConnectionStringBuilder(PlatformConnectionString) { Database = "postgres" };
+        await Sinedu.Platform.Metrics.MetricsCollector.EnsureRoleAsync(Vault, admin.ConnectionString, CancellationToken.None);
     }
 
     private async Task ProvisionAsync(string slug, string name)
@@ -214,6 +263,7 @@ public sealed class SineduFixture : IAsyncLifetime
             ["Database:MigrateOnStartup"] = "false",
             ["RateLimiting:PermitPerMinute"] = "100000",
             ["Notifications:RetryWorker"] = "false",
+            ["Metrics:Worker"] = "false",
             ["Oidc:TenantClientSecret"] = "test-escola-client-secret-0123456789abcdef",
             ["Oidc:PanelClientSecret"] = "test-painel-client-secret-0123456789abcdef",
         };

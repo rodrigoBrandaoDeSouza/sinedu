@@ -219,14 +219,14 @@ public sealed class AccountService(
                 user.Email,
                 $"Convite para acessar o Sinedu — {tenantName}",
                 $"Olá, {user.FullName}.\n\nVocê foi convidado(a) para acessar o Sinedu na escola {tenantName}.\n\n" +
-                $"Para criar sua senha, acesse:\n{link}\n\nO link vale por 7 dias. Se você não esperava este convite, ignore este e-mail."), cancellationToken);
+                $"Para criar sua senha, acesse:\n{link}\n\nO link vale por 7 dias. Se você não esperava este convite, ignore este e-mail.") { TenantId = tenantId }, cancellationToken);
         }
         else
         {
             await emailSender.SendAsync(new EmailMessage(
                 user.Email,
                 $"Novo acesso no Sinedu — {tenantName}",
-                $"Olá, {user.FullName}.\n\nSua conta agora tem acesso à escola {tenantName}.\n\nEntre em {urls.Value.AccountUrl} para acessar."), cancellationToken);
+                $"Olá, {user.FullName}.\n\nSua conta agora tem acesso à escola {tenantName}.\n\nEntre em {urls.Value.AccountUrl} para acessar.") { TenantId = tenantId }, cancellationToken);
         }
 
         await audit.WriteAsync(new AuditEntry("tenant_invitation_sent", UserId: user.Id, ResourceType: "tenant", ResourceId: tenantId.ToString()), cancellationToken);
@@ -269,6 +269,29 @@ public sealed class AccountService(
             $"Olá, {user.FullName}.\n\nVocê foi cadastrado(a) como administrador(a) da plataforma Sinedu.\n\n" +
             $"Para criar sua senha e cadastrar a verificação em duas etapas, acesse:\n{link}\n\nO link vale por 7 dias."), ct);
         await audit.WriteAsync(new AuditEntry("platform_first_admin_invited", UserId: user.Id), ct);
+        return user.Id;
+    }
+
+    /// <summary>Nova conta da plataforma (SUPER_ADMIN ou SUPORTE), convidada por um SUPER_ADMIN. MFA no primeiro acesso.</summary>
+    public async Task<Guid> InvitePlatformAccountAsync(string email, string fullName, string role, CancellationToken ct)
+    {
+        var now = clock.GetUtcNow();
+        var user = new UserAccount
+        {
+            Id = Guid.CreateVersion7(), Email = Normalize(email), FullName = fullName.Trim(), Status = AccountStatus.Invited, Kind = AccountKind.Platform,
+            SecurityStamp = Guid.NewGuid(), CreatedAt = now,
+        };
+        db.Users.Add(user);
+        db.PlatformRoles.Add(new PlatformRoleGrant { Id = Guid.CreateVersion7(), UserId = user.Id, Role = role, GrantedAt = now });
+        await db.SaveChangesAsync(ct);
+
+        var token = await IssueTokenAsync(user, AccountTokenPurpose.Invitation, InvitationLifetime, ct);
+        var link = new Uri(urls.Value.AccountUrl, $"convite?token={token}");
+        await emailSender.SendAsync(new EmailMessage(
+            user.Email,
+            "Convite para o painel do Sinedu",
+            $"Olá, {user.FullName}.\n\nVocê foi convidado(a) para o painel da plataforma Sinedu ({(role == Roles.SuperAdmin ? "administração" : "suporte")}).\n\n" +
+            $"Para criar sua senha e cadastrar a verificação em duas etapas, acesse:\n{link}\n\nO link vale por 7 dias."), ct);
         return user.Id;
     }
 

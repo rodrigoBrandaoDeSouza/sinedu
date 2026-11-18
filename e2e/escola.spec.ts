@@ -16,6 +16,22 @@ test.describe("Login único e isolamento entre escolas", () => {
     await expect(page).toHaveURL(/sem-acesso/);
   });
 
+  test("Sair encerra a sessão e volta para o login único", async ({ page }) => {
+    await signIn(page, urls.demo, "diretora@escola-demo.local");
+    await page.getByRole("button", { name: "Sair" }).click();
+    await expect(page).toHaveURL(/conta\.localhost:5175\/entrar/);
+    await page.goto(urls.demo);
+    await expect(page).toHaveURL(/entrar/); // a sessão da escola não vale mais
+  });
+
+  test("Sem acesso à escola, 'Entrar com outra conta' leva ao login", async ({ page }) => {
+    await signIn(page, urls.demo, "diretora@escola-demo.local");
+    await page.goto(urls.modelo);
+    await expect(page).toHaveURL(/sem-acesso/);
+    await page.getByRole("button", { name: /entrar com outra conta/i }).click();
+    await expect(page).toHaveURL(/conta\.localhost:5175\/entrar/);
+  });
+
   test("A sessão de uma escola não autentica a API de outra", async ({ page, request }) => {
     await signIn(page, urls.demo, "diretora@escola-demo.local");
     const cookie = (await page.context().cookies(urls.demo)).map((c) => `${c.name}=${c.value}`).join("; ");

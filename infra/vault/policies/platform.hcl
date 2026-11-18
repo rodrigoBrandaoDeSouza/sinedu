@@ -31,6 +31,11 @@ path "secret/metadata/tenants/*" {
   capabilities = ["read", "delete"]
 }
 
+# Segredos da própria plataforma (ex.: senha do papel de métricas).
+path "secret/data/platform/*" {
+  capabilities = ["create", "read", "update"]
+}
+
 # Explícito: a plataforma não decifra nem gera chaves de dados de escola.
 path "transit/decrypt/tenant-*" {
   capabilities = ["deny"]

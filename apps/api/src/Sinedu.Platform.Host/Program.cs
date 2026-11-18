@@ -120,6 +120,13 @@ namespace Sinedu.Platform.Host
             await scope.ServiceProvider.GetRequiredService<AuditDbContext>().Database.MigrateAsync();
             await scope.ServiceProvider.GetRequiredService<TenantsDbContext>().Database.MigrateAsync();
             await scope.ServiceProvider.GetRequiredService<IdentityDbContext>().Database.MigrateAsync();
+            await scope.ServiceProvider.GetRequiredService<Sinedu.Platform.Metrics.MetricsDbContext>().Database.MigrateAsync();
+
+            // Papel de métricas (P-10) antes de qualquer migração de escola, para os GRANTs da view.
+            await Sinedu.Platform.Metrics.MetricsCollector.EnsureRoleAsync(
+                scope.ServiceProvider.GetRequiredService<Sinedu.SharedKernel.Secrets.ISecretStore>(),
+                scope.ServiceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<Sinedu.Platform.Tenants.TenantDatabaseOptions>>().Value.AdminConnectionString,
+                CancellationToken.None);
         }
     }
 }

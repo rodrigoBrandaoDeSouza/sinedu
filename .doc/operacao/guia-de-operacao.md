@@ -43,7 +43,7 @@ Em produção tudo vem de variáveis de ambiente (modelo: [`infra/prod/env.examp
 | `ConnectionStrings__PlatformRegistry` | escola | Papel `sinedu_registry_reader`: só `SELECT` em `tenants.v_registry`. |
 | `Vault__Address`, `Vault__Token` | ambos | Um token por host, com as políticas de `infra/vault/policies` (a da plataforma **não** decifra). |
 | `Storage__ServiceUrl`, `__AccessKey`, `__SecretKey` | ambos | SeaweedFS (S3). Um bucket por escola. |
-| `Smtp__Host`, `__Port`, `__UseTls`, `__Username`, `__Password`, `__FromAddress` | ambos | Provedor de e-mail. |
+| `Smtp__Host`, `__Port`, `__UseTls`, `__Username`, `__Password`, `__FromAddress` | ambos | SMTP **padrão** da plataforma. Cada escola pode ter o próprio SMTP, configurado no painel (Escolas → E-mail), guardado no Vault; teste em Sistema → Teste de e-mail. |
 | `Oidc__TenantClientSecret`, `Oidc__PanelClientSecret` | ambos | Clientes confidenciais da escola e do painel. |
 | `Oidc__SigningCertificatePath`, `Oidc__EncryptionCertificatePath`, `Oidc__CertificatePassword` | plataforma | Certificados PFX persistentes do login único. |
 | `Notifications__RetryWorker` | escola | `false` desliga a fila de reenvio de e-mails (padrão: ligada). |

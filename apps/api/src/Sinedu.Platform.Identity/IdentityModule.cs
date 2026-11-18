@@ -76,6 +76,7 @@ public sealed class IdentityModule : IModule
         OidcEndpoints.Map(endpoints);
         InternalEndpoints.Map(endpoints);
         PanelSessionEndpoints.Map(endpoints);
+        PlatformAccounts.Map(endpoints);
     }
 
     private static void AddOpenIddict(IServiceCollection services, SineduUrls urls, IConfiguration configuration)

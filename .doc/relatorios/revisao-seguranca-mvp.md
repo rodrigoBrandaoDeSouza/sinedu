@@ -80,7 +80,7 @@ Nenhum teste de vazamento ou de negação falhou. **Critério de bloqueio da spe
 
 - [ ] **Homologação na VPS (F6-08):** os arquivos estão prontos (`infra/prod`), mas falta acesso à VPS e ao DNS. Lá, validar: certificado wildcard, `init-roles.sql`, PgBouncer com `auth_query`, Vault com unseal e AppRole, backup e restauração de uma escola.
 - [ ] **Teste de restauração de backup** numa escola de homologação, incluindo a leitura de uma ficha de Saúde depois de restaurar.
-- [ ] **Métricas da plataforma (P-10):** quando `metrics.v_counts` existir, incluir no teste de vazamento (a varredura bruta do banco da plataforma já roda).
+- [x] **Métricas da plataforma (P-10):** `metrics.v_counts` sem nada protegido; o papel `sinedu_metrics` só lê a view (`Papel_de_metricas_so_le_a_view_de_contagens`); as fotos de coleta ficam no banco da plataforma, coberto pela varredura do teste de vazamento. Painel sem dados de aluno: `Nenhum_dado_de_aluno_e_alcancavel_pelo_painel` (P-14).
 - [ ] **Teste de intrusão externo** antes da produção com dados reais.
 - [ ] **Licença do QuestPDF** (Community) para uso por órgão público (pendência de decisões).
 - [ ] **LGPD:** prazos de retenção e descarte com as redes (pendência de decisões).
