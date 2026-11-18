@@ -88,9 +88,9 @@ describe("App da escola", () => {
 
   it("rotas ainda não implementadas mostram o item do backlog", async () => {
     signedInAs(["DIRETOR"]);
-    renderAt("/ocorrencias");
+    renderAt("/relatorios");
 
     expect(await screen.findByText("Em construção")).toBeInTheDocument();
-    expect(screen.getByText("Backlog F5-01")).toBeInTheDocument();
+    expect(screen.getByText("Backlog F6-04")).toBeInTheDocument();
   });
 });

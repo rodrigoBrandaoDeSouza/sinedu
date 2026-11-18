@@ -100,13 +100,30 @@ Interpretações feitas na arquitetura. Valem como padrão até serem confirmada
 - **Negativas** nos endpoints protegidos respondem 403 uniforme (papel sem acesso) ou 404 (aluno fora desta escola) e são auditadas como `protected_access_denied`, sem conteúdo.
 - **Rotação de chave:** rotacionar a chave da escola no Vault e rodar `rewrap-protected {escola}` (ver [runbook](arquitetura/runbook-rotacao-de-chave.md)).
 
+## Decisões da Fase 5 (ocorrências e comunicações)
+
+- **Ciclo:** rascunho → registrada → em acompanhamento → concluída; cancelada a partir de qualquer estado formalizado, com justificativa (10+ caracteres). Concluída pode ser **reaberta** para acompanhamento. Rascunho é visível **só para quem o criou** e pode ser excluído por ele; registrada nunca é excluída (P4).
+- **Revisões:** depois do registro, toda edição ou mudança de situação exige motivo e grava uma revisão com o estado completo (autor, data, motivo). Edição concorrente recebe 409. O aluno não muda depois do registro (cancela-se e registra-se outra).
+- **Turma do fato:** a matrícula vigente na data local (São Paulo) do acontecimento. No dia de uma troca de turma, vale a turma nova. Fato sem matrícula na data é recusado.
+- **Categorias** iniciais da spec + gravidade opcional (Leve, Moderada, Grave). Só a Direção cria, renomeia ou desativa categorias.
+- **Formulário avisa** que violência, abuso e proteção vão para a aba Proteção/Sigilo — não há detecção automática de conteúdo.
+- **Anexos de ocorrência:** PDF, PNG ou JPG até 10 MB no bucket da escola, com SHA-256 conferido no download; download só pela API.
+- **Ata:** cabeçalho da escola (nome, código, endereço, telefone, e-mail), dados do fato, trilha de autoria com todas as versões e campos de assinatura (registro, Direção, responsável legal). Só para ocorrência formalizada.
+- **Autorização de contato** do responsável exige **fundamento** escrito e guarda quem autorizou e quando. Sem autorização ou sem e-mail, o responsável aparece na prévia como "não pode receber", com o motivo.
+- **Mensagens:** dois modelos neutros iniciais. Modelos só aceitam `{responsavel}`, `{aluno}` (primeiro nome), `{escola}`, `{data}` e `{contato_escola}` — **não existe marcador para descrição, categoria ou providências**, e não há texto livre por envio. Só a Direção edita modelos.
+- **Envio:** autorização explícita na prévia; primeira tentativa na hora; falha registra erro **sanitizado** (tipo da falha, nunca endereço ou resposta do servidor) e agenda até 3 tentativas automáticas (1 e 5 minutos). Depois disso, reenvio manual. Pendente ou com falha pode ser cancelado.
+- **Idempotência:** cada abertura do diálogo de envio gera um `requestId`; o mesmo pedido nunca gera duas mensagens. Um segundo pedido para o mesmo responsável e modelo exige confirmação ("enviar mesmo assim").
+- **Fila:** um worker no Tenant.Host percorre as escolas ativas a cada minuto, cada uma no próprio escopo (conexão, chave e bucket dela). Desligável por `Notifications:RetryWorker`.
+- **WhatsApp:** interface `INotificationProvider` pronta; o canal aparece como **desabilitado** até a integração oficial ser configurada (spec 6.2).
+
 ## Pendências (não bloqueiam o início)
 
 - [ ] Domínio definitivo e acesso ao DNS (certificado wildcard via desafio DNS).
 - [ ] Gerador de PDF: avaliar licença do QuestPDF para uso por órgão público. **Já em uso** na exportação excepcional (licença Community); trocar de biblioteca é local a `ExportService`.
 - [ ] Prazos de retenção e descarte — definir com as redes e assessoria LGPD.
 - [x] Amostras anonimizadas de importação (D7) — `.doc/amostras/alunos-2026-anonimizado.xlsx` (1.032 alunos, 34 turmas), carregada na `escola-teste`.
-- [ ] Modelo de texto padrão das comunicações aos responsáveis.
+- [ ] Modelo de texto padrão das comunicações aos responsáveis — **dois modelos neutros já em uso**; validar o texto com as redes.
+- [ ] Logo da escola no cabeçalho da ata (D12) — falta o upload de logo no perfil da escola.
 
 ### Pendências técnicas da Fase 1 (antes da homologação — F6-08)
 

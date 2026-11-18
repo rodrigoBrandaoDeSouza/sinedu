@@ -18,14 +18,7 @@ public sealed record AttachmentContent(string FileName, string ContentType, byte
 internal sealed class AttachmentService(
     ProtectedDbContext db, ProtectedCrypto crypto, IObjectStorage storage, TenantScope tenant, IAuditLog audit, TimeProvider clock)
 {
-    public const long MaxBytes = 10 * 1024 * 1024;
-
-    private static readonly (string Type, string Extension, byte[] Magic)[] Allowed =
-    [
-        ("application/pdf", ".pdf", "%PDF-"u8.ToArray()),
-        ("image/png", ".png", [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]),
-        ("image/jpeg", ".jpg", [0xFF, 0xD8, 0xFF]),
-    ];
+    public const long MaxBytes = DocumentTypes.MaxBytes;
 
     public async Task<IReadOnlyList<AttachmentView>> ListAsync(Guid studentId, RecordKind? owner, Guid? ownerId, CancellationToken ct)
     {
@@ -59,8 +52,8 @@ internal sealed class AttachmentService(
             errors["file"] = ["Envie um arquivo de até 10 MB."];
         }
 
-        var type = Allowed.FirstOrDefault(t => content.AsSpan().StartsWith(t.Magic));
-        if (type.Type is null)
+        var type = DocumentTypes.Detect(content);
+        if (type is null)
         {
             errors["file"] = ["Formato não aceito. Envie PDF, PNG ou JPG."];
         }
@@ -80,9 +73,9 @@ internal sealed class AttachmentService(
         }
 
         var id = Guid.CreateVersion7();
-        var safeName = SafeFileName(fileName, type.Extension);
+        var safeName = DocumentTypes.SafeFileName(fileName, type!);
         var file = await crypto.EncryptBytesAsync(content, crypto.AttachmentAad(studentId, id, "content"), ct);
-        var meta = await crypto.EncryptAsync(new AttachmentMetadata(safeName, type.Type!, desc), crypto.AttachmentAad(studentId, id, "metadata"), ct);
+        var meta = await crypto.EncryptAsync(new AttachmentMetadata(safeName, type!.ContentType, desc), crypto.AttachmentAad(studentId, id, "metadata"), ct);
         var objectKey = $"protected/{id:N}";
         await storage.PutAsync(tenant.Current.BucketName, objectKey, file.Ciphertext, ct);
 
@@ -98,7 +91,7 @@ internal sealed class AttachmentService(
         db.Attachments.Add(attachment);
         await db.SaveChangesAsync(ct);
         await audit.WriteAsync(new AuditEntry("protected_attachment_uploaded", ResourceType: "attachment", ResourceId: id.ToString(), StudentId: studentId), ct);
-        return new AttachmentView(id, owner.ToString(), ownerId, safeName, type.Type!, desc, content.Length, now, actor.Name);
+        return new AttachmentView(id, owner.ToString(), ownerId, safeName, type.ContentType, desc, content.Length, now, actor.Name);
     }
 
     public async Task<AttachmentContent?> DownloadAsync(Guid studentId, Guid attachmentId, CancellationToken ct)
@@ -141,16 +134,4 @@ internal sealed class AttachmentService(
         crypto.DecryptAsync<AttachmentMetadata>(
             new EnvelopeCiphertext(a.MetadataCiphertext, a.MetadataNonce, a.MetadataTag, a.MetadataWrappedKey),
             crypto.AttachmentAad(a.StudentId, a.Id, "metadata"), ct);
-
-    private static string SafeFileName(string fileName, string extension)
-    {
-        var name = Path.GetFileNameWithoutExtension(fileName ?? "");
-        var clean = new string(name.Where(c => char.IsLetterOrDigit(c) || c is ' ' or '-' or '_' or '.').ToArray()).Trim();
-        if (clean.Length == 0)
-        {
-            clean = "documento";
-        }
-
-        return (clean.Length > 120 ? clean[..120] : clean) + extension;
-    }
 }

@@ -4,6 +4,9 @@ import { ArrowLeft, Cake, Hash, Home, Lock, Mail, Pencil, Phone, ShieldCheck, Us
 import { lazy, Suspense, useState, type FormEvent, type ReactNode } from "react";
 import { Link, useParams, useSearchParams } from "react-router";
 import { useHasRole } from "../lib/session";
+import { updateGuardianContact } from "../lib/occurrences-api";
+import { StudentTimeline } from "./occurrences/student-timeline";
+import { errorsOf } from "./protected/utils";
 
 /** Só baixado quando Direção/Pedagogia abre Saúde ou Proteção: os demais perfis nunca carregam este código. */
 const ProtectedPanel = lazy(() => import("./protected/protected-panel"));
@@ -110,7 +113,8 @@ export function StudentPage() {
             </CardBody>
           </Card>
 
-          {s.guardians !== undefined ? <GuardiansCard guardians={s.guardians} /> : null}
+          {s.guardians !== undefined ? <GuardiansCard studentId={s.id} canEdit={s.canEdit} guardians={s.guardians} /> : null}
+          {pedagogical ? <StudentTimeline studentId={s.id} /> : null}
         </div>
 
         <Card>
@@ -145,7 +149,8 @@ export function StudentPage() {
   );
 }
 
-function GuardiansCard({ guardians }: { guardians: NonNullable<StudentDetails["guardians"]> }) {
+function GuardiansCard({ studentId, canEdit, guardians }: { studentId: string; canEdit: boolean; guardians: NonNullable<StudentDetails["guardians"]> }) {
+  const [editing, setEditing] = useState<NonNullable<StudentDetails["guardians"]>[number]>();
   return (
     <Card>
       <CardHeader title="Responsáveis" description="Comunicações só para quem tem autorização de contato registrada." />
@@ -161,6 +166,11 @@ function GuardiansCard({ guardians }: { guardians: NonNullable<StudentDetails["g
               <Badge tone={g.contactAuthorized ? "good" : "warning"} icon>
                 {g.contactAuthorized ? "Contato autorizado" : "Autorização não registrada"}
               </Badge>
+              {canEdit ? (
+                <Button size="sm" variant="ghost" className="ml-auto" onClick={() => setEditing(g)}>
+                  <Pencil /> Contato
+                </Button>
+              ) : null}
             </div>
             <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-3">
               <Field icon={Phone} label="Telefone" value={g.phone} />
@@ -170,7 +180,78 @@ function GuardiansCard({ guardians }: { guardians: NonNullable<StudentDetails["g
           </div>
         ))}
       </CardBody>
+      {editing ? <ContactDialog studentId={studentId} guardian={editing} onClose={() => setEditing(undefined)} /> : null}
     </Card>
+  );
+}
+
+/** Contato e autorização de comunicação (spec 6.1): autorizar exige o fundamento; nada é presumido. */
+function ContactDialog({ studentId, guardian, onClose }: { studentId: string; guardian: NonNullable<StudentDetails["guardians"]>[number]; onClose: () => void }) {
+  const client = useQueryClient();
+  const [authorized, setAuthorized] = useState(guardian.contactAuthorized);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const save = useMutation({
+    mutationFn: (body: Parameters<typeof updateGuardianContact>[2]) => updateGuardianContact(studentId, guardian.id, body),
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: ["student", studentId] });
+      onClose();
+    },
+    onError: (err) => setErrors(errorsOf(err)),
+  });
+
+  const submit = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const d = new FormData(e.currentTarget);
+    const text = (k: string) => String(d.get(k) ?? "").trim() || null;
+    setErrors({});
+    save.mutate({
+      email: text("email"),
+      phone: text("phone"),
+      isPrimaryContact: d.get("isPrimaryContact") === "on",
+      contactAuthorized: authorized,
+      contactBasis: authorized ? text("contactBasis") : null,
+    });
+  };
+
+  return (
+    <Dialog
+      open
+      onClose={onClose}
+      title={`Contato de ${guardian.name}`}
+      description="Comunicações por e-mail só vão para responsáveis com e-mail e autorização de contato registrada."
+      footer={
+        <>
+          <Button onClick={onClose}>Cancelar</Button>
+          <Button variant="primary" type="submit" form="contact-form" disabled={save.isPending}>
+            Salvar
+          </Button>
+        </>
+      }
+    >
+      <form id="contact-form" onSubmit={submit} className="space-y-4" noValidate>
+        {errors.form ? <Alert tone="critical" title={errors.form} /> : null}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Input label="E-mail" name="email" type="email" defaultValue={guardian.email ?? ""} error={errors.email} />
+          <Input label="Telefone" name="phone" defaultValue={guardian.phone ?? ""} />
+        </div>
+        <label className="flex items-center gap-2 text-sm text-foreground">
+          <input type="checkbox" name="isPrimaryContact" defaultChecked={guardian.isPrimaryContact} /> Contato principal
+        </label>
+        <label className="flex items-center gap-2 text-sm text-foreground">
+          <input type="checkbox" checked={authorized} onChange={(e) => setAuthorized(e.target.checked)} /> Autoriza receber comunicações da escola
+        </label>
+        {authorized ? (
+          <Input
+            label="Fundamento da autorização"
+            name="contactBasis"
+            defaultValue={guardian.contactBasis ?? ""}
+            placeholder="Ex.: termo assinado na matrícula de 2026"
+            error={errors.contactBasis}
+            hint="Fica registrado com seu nome e a data."
+          />
+        ) : null}
+      </form>
+    </Dialog>
   );
 }
 

@@ -21,6 +21,7 @@ public sealed class SchoolModule : IModule
         services.AddScoped<IHttpContextAccessorWrapper, HttpContextAccessorWrapper>();
         services.AddScoped<IViewerScopeProvider, ViewerScopeProvider>();
         services.AddScoped<IClassroomDirectory, ClassroomDirectory>();
+        services.AddScoped<ISchoolProfileReader, SchoolProfileReader>();
     }
 
     public void MapEndpoints(IEndpointRouteBuilder endpoints)

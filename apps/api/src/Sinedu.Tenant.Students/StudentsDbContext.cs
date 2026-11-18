@@ -140,6 +140,13 @@ public sealed class StudentGuardian
     public bool IsPrimaryContact { get; set; }
 
     public bool ContactAuthorized { get; set; }
+
+    /// <summary>Fundamento da autorização de contato (spec 6.1): ex. "termo assinado na matrícula". Nunca presumida.</summary>
+    public string? ContactBasis { get; set; }
+
+    public DateTimeOffset? ContactAuthorizedAt { get; set; }
+
+    public Guid? ContactAuthorizedBy { get; set; }
 }
 
 public sealed class StudentsDbContext(DbContextOptions<StudentsDbContext> options) : DbContext(options)
@@ -211,6 +218,7 @@ public sealed class StudentsDbContext(DbContextOptions<StudentsDbContext> option
             e.ToTable("student_guardians");
             e.HasKey(x => new { x.StudentId, x.GuardianId });
             e.Property(x => x.Relationship).HasConversion<string>().HasMaxLength(20);
+            e.Property(x => x.ContactBasis).HasMaxLength(300);
             e.HasOne(x => x.Guardian).WithMany().HasForeignKey(x => x.GuardianId);
         });
     }

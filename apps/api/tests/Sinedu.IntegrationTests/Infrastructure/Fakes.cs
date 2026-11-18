@@ -146,8 +146,22 @@ public sealed class CapturingEmailSender : IEmailSender
 {
     public ConcurrentQueue<EmailMessage> Sent { get; } = new();
 
+    private int _failures;
+
+    /// <summary>Faz os próximos N envios para este destinatário falharem (simula servidor SMTP fora do ar).</summary>
+    public ConcurrentDictionary<string, int> FailuresFor { get; } = new(StringComparer.OrdinalIgnoreCase);
+
+    public int Failures => _failures;
+
     public Task SendAsync(EmailMessage message, CancellationToken cancellationToken = default)
     {
+        if (FailuresFor.TryGetValue(message.To, out var left) && left > 0)
+        {
+            FailuresFor[message.To] = left - 1;
+            Interlocked.Increment(ref _failures);
+            throw new System.IO.IOException($"SMTP recusou a mensagem para {message.To}");
+        }
+
         Sent.Enqueue(message);
         return Task.CompletedTask;
     }

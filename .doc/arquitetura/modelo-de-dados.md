@@ -150,7 +150,7 @@ erDiagram
 | `student_enrollments` | student_id, classroom_id, school_year_id, status (`ativa`/`transferida`/`concluida`/`cancelada`/`remanejada`), starts_on, ends_on, external_number | Encerrar e abrir nova; nunca sobrescrever. |
 | `student_addresses` | student_id, street, number, complement, district, city, uf, postal_code, valid_from, valid_to, source | Versionado por vigência. |
 | `guardians` | full_name, phone_primary, phone_secondary, email, source | |
-| `student_guardians` | student_id, guardian_id, relationship, is_primary_contact, contact_authorized, contact_basis, preferred_channel | N:N. |
+| `student_guardians` | student_id, guardian_id, relationship, is_primary_contact, contact_authorized, contact_basis, contact_authorized_at, contact_authorized_by | N:N. Autorizar exige fundamento (spec 6.1). |
 
 ### Schema `protected` — só o módulo ProtectedRecords acessa
 
@@ -166,19 +166,19 @@ erDiagram
 
 | Tabela | Colunas principais | Observações |
 |--------|-------------------|-------------|
-| `occurrence_categories` | name, is_active, sort_order | Seed padrão no provisionamento. |
-| `occurrence_severities` | name, sort_order | |
-| `occurrences` | student_id, enrollment_id, classroom_id, school_year_id, occurred_at, category_id, severity_id, location, description, involved, actions_taken, referrals, status (`rascunho`/`registrada`/`em_acompanhamento`/`concluida`/`cancelada`), registered_at, concluded_at, cancel_reason, notes, version | Turma **da data do fato** gravada no registro. |
-| `occurrence_revisions` | occurrence_id, version, snapshot (jsonb), changed_by, changed_at, reason | |
-| `occurrence_attachments` | occurrence_id, object_key, file_name, content_type, size_bytes, uploaded_by | |
+| `categories` | name, is_active, sort_order | Seed padrão na migration (categorias da spec). |
+| `severities` | name, sort_order | Leve, Moderada, Grave. |
+| `occurrences` | student_id, enrollment_id, classroom_id, school_year_id, occurred_at, category_id, severity_id, location, description, involved, actions_taken, referrals, status (`Rascunho`/`Registrada`/`EmAcompanhamento`/`Concluida`/`Cancelada`), created_by(_name), registered_at/by, concluded_at, cancelled_at, cancel_reason, notes, version, xmin | Turma **da data do fato** gravada no registro. |
+| `revisions` | occurrence_id, version, action, snapshot (jsonb), reason, changed_by(_name), changed_at | Estado completo depois de cada mudança formal. |
+| `attachments` | occurrence_id, object_key, file_name, content_type, size_bytes, sha256, uploaded_by(_name), removed_at | |
 
 ### Schema `notifications`
 
 | Tabela | Colunas principais | Observações |
 |--------|-------------------|-------------|
-| `notification_templates` | channel, name, subject, body, is_active | |
-| `notifications` | occurrence_id, guardian_id, channel, recipient_address, template_id, rendered_subject, rendered_body, authorized_by, authorized_at, status, idempotency_key (único) | |
-| `notification_attempts` | notification_id, attempt_no, started_at, finished_at, result, provider_message_id, error_sanitized | |
+| `templates` | channel, name, subject, body, is_active, sort_order | Só marcadores neutros. |
+| `notifications` | occurrence_id, student_id, guardian_id, recipient_name, channel, recipient_address, template_id, rendered_subject, rendered_body, authorized_by(_name), authorized_at, status, attempts, next_attempt_at, sent_at, provider_message_id, last_error (sanitizado), idempotency_key (único), cancelled_at | |
+| `attempts` | notification_id, attempt_no, trigger (envio/reenvio automático/manual), started_at, finished_at, succeeded, provider_message_id, error_sanitized | |
 
 ### Schema `imports`
 

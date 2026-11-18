@@ -35,6 +35,7 @@ services.AddScoped<TenantScope>();
 services.AddSingleton(new RegistryDataSource(NpgsqlDataSource.Create(
     configuration.GetConnectionString("PlatformRegistry") ?? throw new InvalidOperationException("ConnectionStrings:PlatformRegistry ausente."))));
 services.AddScoped<ITenantResolver, TenantRegistryResolver>();
+services.AddHostedService<Sinedu.Tenant.Host.Operations.NotificationRetryWorker>();
 
 services.AddTenantDbContext<AuditDbContext>(AuditDbContext.Schema);
 services.AddScoped<IAuditLog, AuditLog>();

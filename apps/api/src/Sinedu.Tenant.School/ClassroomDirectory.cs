@@ -81,3 +81,22 @@ internal sealed class ClassroomDirectory(SchoolDbContext db) : IClassroomDirecto
         return classroom.Id;
     }
 }
+
+/// <summary>Cabeçalho institucional (atas, e-mails). Contrato público do módulo School.</summary>
+public sealed record SchoolHeader(string Name, string? InstitutionalCode, string? Address, string? Phone, string? Email);
+
+public interface ISchoolProfileReader
+{
+    Task<SchoolHeader> GetAsync(CancellationToken ct = default);
+}
+
+internal sealed class SchoolProfileReader(SchoolDbContext db, Sinedu.SharedKernel.Tenancy.TenantScope tenant) : ISchoolProfileReader
+{
+    public async Task<SchoolHeader> GetAsync(CancellationToken ct = default)
+    {
+        var p = await db.Profile.AsNoTracking().FirstOrDefaultAsync(ct);
+        return p is null
+            ? new SchoolHeader(tenant.Current.DisplayName, null, null, null, null)
+            : new SchoolHeader(p.Name, p.InstitutionalCode, p.Address, p.Phone, p.Email);
+    }
+}

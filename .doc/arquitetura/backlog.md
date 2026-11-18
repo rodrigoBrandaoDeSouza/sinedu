@@ -102,16 +102,16 @@ Legenda: 🔒 segurança bloqueante · 🧪 inclui teste de negação/isolamento
 
 | ID | Item | Dep. |
 |----|------|------|
-| F5-01 🧪 | Ocorrência: rascunho → registrada → em acompanhamento → concluída/cancelada; turma da data do fato | F2-05 |
-| F5-02 🧪 | Revisões com autor, data e justificativa | F5-01 |
-| F5-03 🧪 | Anexos de ocorrência | F5-01 |
-| F5-04 | Linha do tempo no painel do aluno | F5-01 |
-| F5-05 | Ata em PDF com cabeçalho da escola | F5-02 |
-| F5-06 | `INotificationProvider` + SMTP; WhatsApp desabilitado | F0-02 |
-| F5-07 🧪 | Comunicação: prévia, autorização, idempotência, fila, retry, reenvio | F5-01, F5-06, F2-06 |
-| F5-08 | Modelos de e-mail neutros | F5-07 |
-| F5-09 | Front: ocorrências completo | F5-01..F5-08 |
-| F5-10 | Critérios de aceite 4, 5, 7 e 15 automatizados | F5-07 |
+| F5-01 🧪 ✅ | Ocorrência: rascunho → registrada → em acompanhamento → concluída/cancelada; turma da data do fato | F2-05 |
+| F5-02 🧪 ✅ | Revisões com autor, data e justificativa | F5-01 |
+| F5-03 🧪 ✅ | Anexos de ocorrência | F5-01 |
+| F5-04 ✅ | Linha do tempo no painel do aluno | F5-01 |
+| F5-05 🟡 | Ata em PDF com cabeçalho da escola — nome, código, endereço e contatos; **logo** fica para quando houver upload de logo da escola | F5-02 |
+| F5-06 ✅ | `INotificationProvider` + SMTP; WhatsApp desabilitado | F0-02 |
+| F5-07 🧪 ✅ | Comunicação: prévia, autorização, idempotência, fila, retry, reenvio | F5-01, F5-06, F2-06 |
+| F5-08 ✅ | Modelos de e-mail neutros | F5-07 |
+| F5-09 ✅ | Front: ocorrências completo | F5-01..F5-08 |
+| F5-10 ✅ | Critérios de aceite 4, 5, 7 e 15 automatizados | F5-07 |
 
 ## Fase 6 — Indicadores, qualidade e implantação
 

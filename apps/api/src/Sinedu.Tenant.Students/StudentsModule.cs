@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -32,6 +33,7 @@ public sealed class StudentsModule : IModule
         api.MapPost("/", CreateAsync).RequireAuthorization(Policies.PedagogicalStaff);
         api.MapPut("/{id:guid}", UpdateAsync).RequireAuthorization(Policies.PedagogicalStaff);
         api.MapPost("/{id:guid}/move", MoveAsync).RequireAuthorization(Policies.PedagogicalStaff);
+        api.MapPut("/{id:guid}/guardians/{guardianId:guid}/contact", UpdateContactAsync).RequireAuthorization(Policies.PedagogicalStaff);
 
         // Contagem por turma: número agregado, sem dados pessoais (Admin técnico também vê a estrutura).
         api.MapGet("/classroom-counts", async (StudentsDbContext db, IViewerScopeProvider scopes, CancellationToken ct) =>
@@ -131,7 +133,8 @@ public sealed class StudentsModule : IModule
             Guardians: scope.SeesGuardians
                 ? student.Guardians.OrderByDescending(g => g.IsPrimaryContact).Select(g => new GuardianView(
                     g.GuardianId, g.Guardian!.FullName, g.Relationship, g.IsPrimaryContact, g.ContactAuthorized,
-                    g.Guardian.Phone, g.Guardian.Email, scope.SeesAddress ? g.Guardian.Document : null)).ToList()
+                    g.Guardian.Phone, g.Guardian.Email, scope.SeesAddress ? g.Guardian.Document : null,
+                    scope.CanEditStudents ? g.ContactBasis : null)).ToList()
                 : null,
             Address: scope.SeesAddress ? student.Addresses.FirstOrDefault()?.Line : null,
             CanEdit: scope.CanEditStudents));
@@ -234,6 +237,55 @@ public sealed class StudentsModule : IModule
         return Results.NoContent();
     }
 
+    /// <summary>
+    /// Contato do responsável e autorização de comunicação (spec 6.1). Autorizar exige fundamento e guarda quem e quando.
+    /// Nada é presumido: sem autorização, o responsável não recebe comunicações.
+    /// </summary>
+    private static async Task<IResult> UpdateContactAsync(
+        Guid id, Guid guardianId, UpdateContactRequest body, ClaimsPrincipal user, StudentsDbContext db, IAuditLog audit, TimeProvider clock, CancellationToken ct)
+    {
+        var link = await db.StudentGuardians.Include(g => g.Guardian).FirstOrDefaultAsync(g => g.StudentId == id && g.GuardianId == guardianId, ct);
+        if (link is null) return Results.NotFound();
+
+        var errors = new Dictionary<string, string[]>();
+        var email = string.IsNullOrWhiteSpace(body.Email) ? null : body.Email.Trim().ToLowerInvariant();
+        if (email is not null && (email.Length > 200 || !System.Net.Mail.MailAddress.TryCreate(email, out _)))
+        {
+            errors["email"] = ["Informe um e-mail válido."];
+        }
+
+        var basis = string.IsNullOrWhiteSpace(body.ContactBasis) ? null : body.ContactBasis.Trim();
+        if (body.ContactAuthorized && (basis is null || basis.Length < 5))
+        {
+            errors["contactBasis"] = ["Informe o fundamento da autorização (ex.: termo assinado na matrícula)."];
+        }
+
+        if (basis?.Length > 300) errors["contactBasis"] = ["Use no máximo 300 caracteres."];
+        if (errors.Count > 0) return Results.ValidationProblem(errors);
+
+        link.Guardian!.Email = email;
+        link.Guardian.Phone = string.IsNullOrWhiteSpace(body.Phone) ? link.Guardian.Phone : body.Phone.Trim();
+        if (body.IsPrimaryContact && !link.IsPrimaryContact)
+        {
+            await db.StudentGuardians.Where(g => g.StudentId == id && g.GuardianId != guardianId)
+                .ExecuteUpdateAsync(s => s.SetProperty(g => g.IsPrimaryContact, false), ct);
+        }
+
+        link.IsPrimaryContact = body.IsPrimaryContact;
+        if (body.ContactAuthorized != link.ContactAuthorized || (body.ContactAuthorized && basis != link.ContactBasis))
+        {
+            link.ContactAuthorized = body.ContactAuthorized;
+            link.ContactBasis = body.ContactAuthorized ? basis : null;
+            link.ContactAuthorizedAt = body.ContactAuthorized ? clock.GetUtcNow() : null;
+            link.ContactAuthorizedBy = body.ContactAuthorized ? Guid.Parse(user.FindFirstValue("sub")!) : null;
+        }
+
+        await db.SaveChangesAsync(ct);
+        await audit.WriteAsync(new AuditEntry(body.ContactAuthorized ? "guardian_contact_authorized" : "guardian_contact_updated",
+            ResourceType: "guardian", ResourceId: guardianId.ToString(), StudentId: id), ct);
+        return Results.NoContent();
+    }
+
     /// <summary>Remanejamento/transferência interna: encerra a matrícula ativa e abre outra (histórico preservado).</summary>
     private static async Task<IResult> MoveAsync(
         Guid id, MoveRequest body, StudentsDbContext db, IClassroomDirectory classrooms, IAuditLog audit, TimeProvider clock, CancellationToken ct)
@@ -282,7 +334,8 @@ public sealed record EnrollmentView(Guid Id, Guid ClassroomId, string Classroom,
 
 public sealed record GuardianView(
     Guid Id, string Name, GuardianRelationship Relationship, bool IsPrimaryContact, bool ContactAuthorized, string? Phone, string? Email,
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Document);
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Document,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? ContactBasis = null);
 
 /// <summary>
 /// Painel do aluno. Responsáveis e endereço são OMITIDOS (não nulos) para quem não pode vê-los.
@@ -313,3 +366,5 @@ public sealed record UpdateStudentRequest(
     string FullName, string? SocialName, DateOnly? BirthDate, string? InstitutionalCode, string? InstitutionalEmail, string? Address);
 
 public sealed record MoveRequest(Guid ClassroomId, int? CallNumber);
+
+public sealed record UpdateContactRequest(string? Email, string? Phone, bool IsPrimaryContact, bool ContactAuthorized, string? ContactBasis);

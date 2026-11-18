@@ -255,6 +255,19 @@ namespace Sinedu.Tenant.Students.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("contact_authorized");
 
+                    b.Property<DateTimeOffset?>("ContactAuthorizedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("contact_authorized_at");
+
+                    b.Property<Guid?>("ContactAuthorizedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("contact_authorized_by");
+
+                    b.Property<string>("ContactBasis")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("contact_basis");
+
                     b.Property<bool>("IsPrimaryContact")
                         .HasColumnType("boolean")
                         .HasColumnName("is_primary_contact");

@@ -213,6 +213,7 @@ public sealed class SineduFixture : IAsyncLifetime
             ["TenantDatabases:Port"] = _postgres.GetMappedPublicPort(5432).ToString(CultureInfo.InvariantCulture),
             ["Database:MigrateOnStartup"] = "false",
             ["RateLimiting:PermitPerMinute"] = "100000",
+            ["Notifications:RetryWorker"] = "false",
             ["Oidc:TenantClientSecret"] = "test-escola-client-secret-0123456789abcdef",
             ["Oidc:PanelClientSecret"] = "test-painel-client-secret-0123456789abcdef",
         };

@@ -7,6 +7,10 @@ import { ClassroomPage } from "./pages/classroom-page";
 import { ClassroomsPage } from "./pages/classrooms-page";
 import { ImportPage } from "./pages/import-page";
 import { ImportsPage } from "./pages/imports-page";
+import { CommunicationsPage } from "./pages/occurrences/communications-page";
+import { OccurrenceFormPage } from "./pages/occurrences/occurrence-form-page";
+import { OccurrencePage } from "./pages/occurrences/occurrence-page";
+import { OccurrencesPage } from "./pages/occurrences/occurrences-page";
 import { HealthImportRoute, PendingRoute } from "./pages/protected/lazy-routes";
 import { StaffPage } from "./pages/staff-page";
 import { StudentPage } from "./pages/student-page";
@@ -28,8 +32,11 @@ export const routes: RouteObject[] = [
       { path: "alunos", element: <StudentsPage /> },
       { path: "alunos/:id", element: <StudentPage /> },
       { path: "equipe", element: <StaffPage /> },
-      soon("ocorrencias", "Ocorrências", "Registro, acompanhamento, ata e linha do tempo.", "F5-01"),
-      soon("comunicacoes", "Comunicações", "E-mails aos responsáveis com prévia, autorização e reenvio.", "F5-07"),
+      { path: "ocorrencias", element: <OccurrencesPage /> },
+      { path: "ocorrencias/nova", element: <OccurrenceFormPage /> },
+      { path: "ocorrencias/:id", element: <OccurrencePage /> },
+      { path: "ocorrencias/:id/editar", element: <OccurrenceFormPage /> },
+      { path: "comunicacoes", element: <CommunicationsPage /> },
       { path: "importacoes", element: <ImportsPage /> },
       { path: "importacoes/:id", element: <ImportPage /> },
       { path: "protegido/pendencias", element: <PendingRoute /> },

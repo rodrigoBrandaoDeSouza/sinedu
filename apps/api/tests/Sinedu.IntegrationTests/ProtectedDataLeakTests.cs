@@ -21,7 +21,7 @@ public class ProtectedDataLeakTests(SineduFixture fx)
     [
         "/api/me",
         "/api/students",
-        "/api/students?search=FICT",
+        "/api/students?query=FICT",
         "/api/students/{id}",
         "/api/students/classroom-counts",
         "/api/school/classrooms",
@@ -29,6 +29,10 @@ public class ProtectedDataLeakTests(SineduFixture fx)
         "/api/school/profile",
         "/api/imports",
         "/api/access/members",
+        "/api/occurrences",
+        "/api/occurrences?studentId={id}",
+        "/api/communications",
+        "/api/communications?studentId={id}",
     ];
 
     [Fact]
@@ -110,6 +114,8 @@ public class ProtectedDataLeakTests(SineduFixture fx)
             Assert.Empty(await DbScan.FindAsync(await fx.SchoolConnectionAsync(A, owner: true), sentinel));
             Assert.Empty(await DbScan.FindAsync(fx.PlatformConnectionString, sentinel));
 
+            Assert.Contains(fx.Email.Sent, m => m.To.StartsWith("familia-", StringComparison.Ordinal));
+
             // Objetos no S3 só têm ciphertext.
             Assert.DoesNotContain(fx.Storage.Objects, o => Encoding.Latin1.GetString(o.Value).Contains(sentinel, StringComparison.Ordinal));
 
@@ -180,6 +186,18 @@ public class ProtectedDataLeakTests(SineduFixture fx)
 
         (await director.PostAsJsonAsync($"/api/students/{studentId}/protected-export",
             new { health = true, protection = true, justification = $"Ofício do Conselho Tutelar {sentinels[3]}" })).EnsureSuccessStatusCode();
+
+        // Critério 15: uma ocorrência e uma comunicação para o mesmo aluno — e-mails e ata nunca levam o conteúdo protegido.
+        var student = await director.GetFromJsonAsync<JsonElement>($"/api/students/{studentId}");
+        var guardianId = student.GetProperty("guardians")[0].GetProperty("id").GetGuid();
+        (await director.PutAsJsonAsync($"/api/students/{studentId}/guardians/{guardianId}/contact",
+            new { email = $"familia-{id.ToLowerInvariant()}@exemplo.test", contactAuthorized = true, contactBasis = "Termo assinado na matrícula", isPrimaryContact = true })).EnsureSuccessStatusCode();
+        var occurrence = await OccurrenceTests.CreateAsync(director, studentId, register: true);
+        (await director.PostAsJsonAsync($"/api/occurrences/{occurrence}/communications", new
+        {
+            templateId = new Guid("0193a000-0000-7000-8000-000000000202"), guardianIds = new[] { guardianId }, requestId = Guid.NewGuid(),
+        })).EnsureSuccessStatusCode();
+        (await director.GetAsync(new Uri($"/api/occurrences/{occurrence}/ata", UriKind.Relative))).EnsureSuccessStatusCode();
 
         // Leituras para gerar eventos de auditoria e logs com o conteúdo em memória.
         await director.GetStringAsync(new Uri($"/api/students/{studentId}/health", UriKind.Relative));

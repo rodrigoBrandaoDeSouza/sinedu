@@ -7,6 +7,8 @@ using Sinedu.SharedKernel.Tenancy;
 using Sinedu.SharedKernel.Web;
 using Sinedu.Tenant.Access;
 using Sinedu.Tenant.Imports;
+using Sinedu.Tenant.Notifications;
+using Sinedu.Tenant.Occurrences;
 using Sinedu.Tenant.ProtectedRecords;
 using Sinedu.Tenant.School;
 using Sinedu.Tenant.Students;
@@ -54,7 +56,7 @@ public sealed class InfraDbContextDesignFactory : IDesignTimeDbContextFactory<In
 public sealed class TenantSchemaMigrator : ITenantSchemaMigrator
 {
     /// <summary>Schemas com CRUD completo para a aplicação.</summary>
-    private static readonly string[] ReadWriteSchemas = [AccessDbContext.Schema, SchoolDbContext.Schema, StudentsDbContext.Schema, ImportsDbContext.Schema, ProtectedDbContext.Schema];
+    private static readonly string[] ReadWriteSchemas = [AccessDbContext.Schema, SchoolDbContext.Schema, StudentsDbContext.Schema, ImportsDbContext.Schema, ProtectedDbContext.Schema, OccurrencesDbContext.Schema, NotificationsDbContext.Schema];
 
     public async Task MigrateAsync(string ownerConnectionString, string appRole, CancellationToken cancellationToken = default)
     {
@@ -68,6 +70,8 @@ public sealed class TenantSchemaMigrator : ITenantSchemaMigrator
         await MigrateAsync<StudentsDbContext>(ownerConnectionString, StudentsDbContext.Schema, o => new StudentsDbContext(o), cancellationToken);
         await MigrateAsync<ImportsDbContext>(ownerConnectionString, ImportsDbContext.Schema, o => new ImportsDbContext(o), cancellationToken);
         await MigrateAsync<ProtectedDbContext>(ownerConnectionString, ProtectedDbContext.Schema, o => new ProtectedDbContext(o), cancellationToken);
+        await MigrateAsync<OccurrencesDbContext>(ownerConnectionString, OccurrencesDbContext.Schema, o => new OccurrencesDbContext(o), cancellationToken);
+        await MigrateAsync<NotificationsDbContext>(ownerConnectionString, NotificationsDbContext.Schema, o => new NotificationsDbContext(o), cancellationToken);
 
         await using var infra = new InfraDbContext(Options<InfraDbContext>(ownerConnectionString, InfraDbContext.Schema));
         await infra.Database.MigrateAsync(cancellationToken);
@@ -130,6 +134,18 @@ public sealed class TenantSchemaMigrator : ITenantSchemaMigrator
           END IF;
           IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_classroom_grants_classroom') THEN
             ALTER TABLE access.classroom_access_grants ADD CONSTRAINT fk_classroom_grants_classroom FOREIGN KEY (classroom_id) REFERENCES school.classrooms (id);
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_occurrences_student') THEN
+            ALTER TABLE occurrences.occurrences ADD CONSTRAINT fk_occurrences_student FOREIGN KEY (student_id) REFERENCES students.students (id);
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_occurrences_enrollment') THEN
+            ALTER TABLE occurrences.occurrences ADD CONSTRAINT fk_occurrences_enrollment FOREIGN KEY (enrollment_id) REFERENCES students.enrollments (id);
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_occurrences_classroom') THEN
+            ALTER TABLE occurrences.occurrences ADD CONSTRAINT fk_occurrences_classroom FOREIGN KEY (classroom_id) REFERENCES school.classrooms (id);
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_notifications_occurrence') THEN
+            ALTER TABLE notifications.notifications ADD CONSTRAINT fk_notifications_occurrence FOREIGN KEY (occurrence_id) REFERENCES occurrences.occurrences (id);
           END IF;
         END $$;
         """,

@@ -16,6 +16,12 @@ public sealed record StudentImport(
     string FullName, string? InstitutionalCode, DateOnly? BirthDate, string? InstitutionalEmail,
     Guid ClassroomId, Guid SchoolYearId, DateOnly EnrollmentStart, int? CallNumber, string? Address, GuardianImport? Guardian);
 
+/// <summary>Matrícula vigente numa data (turma do fato, para ocorrências).</summary>
+public sealed record EnrollmentRef(Guid EnrollmentId, Guid ClassroomId, Guid SchoolYearId);
+
+/// <summary>Contato de responsável para comunicações: só o necessário para decidir e enviar.</summary>
+public sealed record GuardianContact(Guid GuardianId, string Name, GuardianRelationship Relationship, string? Email, bool ContactAuthorized, string? ContactBasis, bool IsPrimaryContact);
+
 public enum StudentApplyOutcome
 {
     Created,
@@ -34,6 +40,11 @@ public interface IStudentRegistry
     Task<StudentApplyOutcome> ApplyAsync(StudentImport data, Guid? existingId, CancellationToken ct = default);
 
     Task<IReadOnlyList<StudentSnapshot>> GetAsync(IReadOnlyCollection<Guid> ids, CancellationToken ct = default);
+
+    /// <summary>Matrícula que valia na data. Em dia de troca de turma, vale a que começou nesse dia.</summary>
+    Task<EnrollmentRef?> GetEnrollmentOnAsync(Guid studentId, DateOnly date, CancellationToken ct = default);
+
+    Task<IReadOnlyList<GuardianContact>> GetContactsAsync(Guid studentId, CancellationToken ct = default);
 }
 
 internal sealed class StudentRegistry(StudentsDbContext db, TimeProvider clock) : IStudentRegistry
@@ -46,6 +57,20 @@ internal sealed class StudentRegistry(StudentsDbContext db, TimeProvider clock) 
 
     public async Task<IReadOnlyList<StudentSnapshot>> GetAsync(IReadOnlyCollection<Guid> ids, CancellationToken ct = default) =>
         await Load(db.Students.Where(s => ids.Contains(s.Id)), ct);
+
+    public async Task<EnrollmentRef?> GetEnrollmentOnAsync(Guid studentId, DateOnly date, CancellationToken ct = default) =>
+        await db.Enrollments.AsNoTracking()
+            .Where(e => e.StudentId == studentId && e.StartsOn <= date && (e.EndsOn == null || e.EndsOn > date))
+            .OrderByDescending(e => e.StartsOn)
+            .Select(e => new EnrollmentRef(e.Id, e.ClassroomId, e.SchoolYearId))
+            .FirstOrDefaultAsync(ct);
+
+    public async Task<IReadOnlyList<GuardianContact>> GetContactsAsync(Guid studentId, CancellationToken ct = default) =>
+        await db.StudentGuardians.AsNoTracking()
+            .Where(g => g.StudentId == studentId)
+            .OrderByDescending(g => g.IsPrimaryContact)
+            .Select(g => new GuardianContact(g.GuardianId, g.Guardian!.FullName, g.Relationship, g.Guardian.Email, g.ContactAuthorized, g.ContactBasis, g.IsPrimaryContact))
+            .ToListAsync(ct);
 
     public async Task<StudentApplyOutcome> ApplyAsync(StudentImport data, Guid? existingId, CancellationToken ct = default)
     {

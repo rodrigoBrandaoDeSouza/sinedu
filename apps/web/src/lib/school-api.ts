@@ -72,6 +72,7 @@ export interface Guardian {
   phone: string | null;
   email: string | null;
   document?: string;
+  contactBasis?: string;
 }
 
 export interface StudentDetails {
