@@ -6,6 +6,8 @@ using Sinedu.SharedKernel.Persistence;
 using Sinedu.SharedKernel.Tenancy;
 using Sinedu.SharedKernel.Web;
 using Sinedu.Tenant.Access;
+using Sinedu.Tenant.School;
+using Sinedu.Tenant.Students;
 
 namespace Sinedu.Tenant.Migrations;
 
@@ -50,24 +52,24 @@ public sealed class InfraDbContextDesignFactory : IDesignTimeDbContextFactory<In
 public sealed class TenantSchemaMigrator : ITenantSchemaMigrator
 {
     /// <summary>Schemas com CRUD completo para a aplicação.</summary>
-    private static readonly string[] ReadWriteSchemas = [AccessDbContext.Schema];
+    private static readonly string[] ReadWriteSchemas = [AccessDbContext.Schema, SchoolDbContext.Schema, StudentsDbContext.Schema];
 
     public async Task MigrateAsync(string ownerConnectionString, string appRole, CancellationToken cancellationToken = default)
     {
-        await using (var audit = new AuditDbContext(Options<AuditDbContext>(ownerConnectionString, AuditDbContext.Schema)))
-        {
-            await audit.Database.MigrateAsync(cancellationToken);
-        }
+        // Extensões confiáveis (o dono do banco pode criar): busca por trecho de nome.
+        await ExecuteAsync(ownerConnectionString, ["CREATE EXTENSION IF NOT EXISTS pg_trgm"], cancellationToken);
 
-        await using (var access = new AccessDbContext(Options<AccessDbContext>(ownerConnectionString, AccessDbContext.Schema)))
-        {
-            await access.Database.MigrateAsync(cancellationToken);
-        }
+        // Ordem importa: módulos que referenciam outros vêm depois.
+        await MigrateAsync<AuditDbContext>(ownerConnectionString, AuditDbContext.Schema, o => new AuditDbContext(o), cancellationToken);
+        await MigrateAsync<AccessDbContext>(ownerConnectionString, AccessDbContext.Schema, o => new AccessDbContext(o), cancellationToken);
+        await MigrateAsync<SchoolDbContext>(ownerConnectionString, SchoolDbContext.Schema, o => new SchoolDbContext(o), cancellationToken);
+        await MigrateAsync<StudentsDbContext>(ownerConnectionString, StudentsDbContext.Schema, o => new StudentsDbContext(o), cancellationToken);
 
         await using var infra = new InfraDbContext(Options<InfraDbContext>(ownerConnectionString, InfraDbContext.Schema));
         await infra.Database.MigrateAsync(cancellationToken);
 
-        await GrantAsync(ownerConnectionString, appRole, cancellationToken);
+        await ExecuteAsync(ownerConnectionString, CrossModuleConstraints, cancellationToken);
+        await ExecuteAsync(ownerConnectionString, Grants(appRole), cancellationToken);
 
         var info = await infra.SchemaInfo.FirstOrDefaultAsync(cancellationToken);
         if (info is null)
@@ -111,7 +113,25 @@ public sealed class TenantSchemaMigrator : ITenantSchemaMigrator
         await db.SaveChangesAsync(cancellationToken);
     }
 
-    private static async Task GrantAsync(string ownerConnectionString, string appRole, CancellationToken cancellationToken)
+    /// <summary>FKs entre schemas de módulos diferentes (o EF modela cada módulo isoladamente). Idempotentes.</summary>
+    private static readonly string[] CrossModuleConstraints =
+    [
+        """
+        DO $$ BEGIN
+          IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_enrollments_classroom') THEN
+            ALTER TABLE students.enrollments ADD CONSTRAINT fk_enrollments_classroom FOREIGN KEY (classroom_id) REFERENCES school.classrooms (id);
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_enrollments_school_year') THEN
+            ALTER TABLE students.enrollments ADD CONSTRAINT fk_enrollments_school_year FOREIGN KEY (school_year_id) REFERENCES school.school_years (id);
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_classroom_grants_classroom') THEN
+            ALTER TABLE access.classroom_access_grants ADD CONSTRAINT fk_classroom_grants_classroom FOREIGN KEY (classroom_id) REFERENCES school.classrooms (id);
+          END IF;
+        END $$;
+        """,
+    ];
+
+    private static List<string> Grants(string appRole)
     {
         var app = PersistenceExtensions.QuoteIdentifier(appRole);
         var statements = new List<string>();
@@ -130,8 +150,19 @@ public sealed class TenantSchemaMigrator : ITenantSchemaMigrator
 
         statements.Add($"GRANT USAGE ON SCHEMA {InfraDbContext.Schema} TO {app}");
         statements.Add($"GRANT SELECT ON {InfraDbContext.Schema}.schema_info TO {app}");
+        return statements;
+    }
 
-        await using var connection = new NpgsqlConnection(ownerConnectionString);
+    private static async Task MigrateAsync<T>(string connectionString, string schema, Func<DbContextOptions<T>, T> create, CancellationToken ct)
+        where T : DbContext
+    {
+        await using var db = create(Options<T>(connectionString, schema));
+        await db.Database.MigrateAsync(ct);
+    }
+
+    private static async Task ExecuteAsync(string connectionString, IEnumerable<string> statements, CancellationToken cancellationToken)
+    {
+        await using var connection = new NpgsqlConnection(connectionString);
         await connection.OpenAsync(cancellationToken);
         foreach (var sql in statements)
         {

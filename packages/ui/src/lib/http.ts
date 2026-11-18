@@ -48,6 +48,7 @@ export const api = {
   get: <T>(path: string) => apiFetch<T>(path),
   post: <T>(path: string, body?: unknown) => apiFetch<T>(path, { method: "POST", body: body === undefined ? undefined : JSON.stringify(body) }),
   delete: <T>(path: string) => apiFetch<T>(path, { method: "DELETE" }),
+  put: <T>(path: string, body: unknown) => apiFetch<T>(path, { method: "PUT", body: JSON.stringify(body) }),
 };
 
 /** Envia um formulário POST real (navegação), usado para logout com redirecionamento ao login único. */

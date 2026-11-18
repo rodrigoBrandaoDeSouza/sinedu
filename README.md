@@ -16,8 +16,11 @@ Documentação: [.doc/](.doc/README.md) · Guia para o Claude Code: [CLAUDE.md](
 # 1. Infraestrutura (PostgreSQL, PgBouncer, Mailpit, SeaweedFS S3, Vault)
 docker compose -f infra/docker-compose.yml up -d
 
-# 2. Banco da plataforma + dados de desenvolvimento (super admin e 2 escolas fictícias)
+# 2. Banco da plataforma + dados de desenvolvimento (super admin e 3 escolas fictícias)
 dotnet run --project apps/api/src/Sinedu.Platform.Host -- migrate seed-dev
+
+# 2b. Carrega a amostra anonimizada (1.031 alunos, 34 turmas) na escola de teste
+dotnet run --project apps/api/src/Sinedu.Tenant.Host -- import-sample escola-teste "$PWD/.doc/amostras/alunos-2026-anonimizado.xlsx"
 
 # 3. APIs (um terminal para cada)
 dotnet run --project apps/api/src/Sinedu.Platform.Host   # conta + painel → :5100
@@ -41,6 +44,7 @@ Criadas pelo `seed-dev`. **Somente para uso local.**
 | `admin@sinedu.local` | Painel — http://painel.localhost:5174 |
 | `diretora@escola-demo.local` | http://escola-demo.localhost:5173 |
 | `diretor@escola-modelo.local` | http://escola-modelo.localhost:5173 |
+| `diretora@escola-teste.local` | http://escola-teste.localhost:5173 — com a amostra anonimizada |
 
 - Senha de todas: `Sinedu-Dev-2026!`
 - Verificação em duas etapas: cadastre o segredo `KRSXG5CTMVRXEZLUKNSWG4TFOQ2DAMZR` em qualquer app autenticador. O `seed-dev` também imprime o código do momento.
@@ -78,4 +82,4 @@ infra/           Docker Compose de desenvolvimento, políticas do Vault
 .doc/            Especificação, decisões, ADRs, arquitetura e backlog
 ```
 
-Os dashboards ainda usam **dados fictícios**, marcados na interface. As APIs reais entram conforme o [backlog](.doc/arquitetura/backlog.md).
+Turmas, alunos e painel do aluno usam dados reais do banco da escola. Os dashboards ainda usam **dados fictícios**, marcados na interface. As APIs reais entram conforme o [backlog](.doc/arquitetura/backlog.md).

@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Alert, api, ApiError, Badge, Button, Card, Dialog, Input, PageHeader, Select, Table, Td, Th, Tr } from "@sinedu/ui";
-import { ShieldCheck, UserPlus, X } from "lucide-react";
+import { BookOpenCheck, ShieldCheck, UserPlus, X } from "lucide-react";
 import { useState, type FormEvent } from "react";
+import { schoolApi } from "../lib/school-api";
 import { roleLabels, useSession, type SchoolRole } from "../lib/session";
 
 interface MemberRow {
@@ -25,6 +26,7 @@ export function UsersPage() {
   const me = useSession();
   const client = useQueryClient();
   const [inviting, setInviting] = useState(false);
+  const [granting, setGranting] = useState<MemberRow | null>(null);
   const { data: members, isLoading } = useQuery({ queryKey: ["members"], queryFn: () => api.get<MemberRow[]>("/api/access/members") });
   const grantable = grantableRoles(me.roles);
 
@@ -99,7 +101,17 @@ export function UsersPage() {
                       ))}
                     </div>
                   </Td>
-                  <Td className="text-foreground-secondary">{m.lastSeenAt ? new Date(m.lastSeenAt).toLocaleString("pt-BR") : "Nunca"}</Td>
+                  <Td className="text-foreground-secondary">
+                    <div className="flex items-center justify-between gap-2">
+                      {m.lastSeenAt ? new Date(m.lastSeenAt).toLocaleString("pt-BR") : "Nunca"}
+                      {grantable.includes("CONSULTA") && m.roles.some((r) => r.role === "CONSULTA") ? (
+                        <Button size="sm" variant="ghost" onClick={() => setGranting(m)}>
+                          <BookOpenCheck />
+                          Turmas
+                        </Button>
+                      ) : null}
+                    </div>
+                  </Td>
                 </Tr>
               ))
             )}
@@ -113,6 +125,7 @@ export function UsersPage() {
       </p>
 
       <InviteDialog open={inviting} roles={grantable} onClose={() => setInviting(false)} />
+      {granting ? <ReadOnlyGrantsDialog member={granting} onClose={() => setGranting(null)} /> : null}
     </>
   );
 }
@@ -157,6 +170,49 @@ function InviteDialog({ open, roles, onClose }: { open: boolean; roles: SchoolRo
         <Input label="E-mail" name="email" type="email" required autoComplete="off" />
         <Select label="Papel" name="role" options={roles.map((r) => ({ value: r, label: roleLabels[r] }))} defaultValue={roles.at(-1)} />
       </form>
+    </Dialog>
+  );
+}
+
+/** D10: o perfil Consulta só enxerga as turmas concedidas aqui. */
+function ReadOnlyGrantsDialog({ member, onClose }: { member: MemberRow; onClose: () => void }) {
+  const [selected, setSelected] = useState<Set<string> | null>(null);
+  const classrooms = useQuery({ queryKey: ["classrooms"], queryFn: () => schoolApi.classrooms() });
+  const current = useQuery({ queryKey: ["grants", member.userId], queryFn: () => api.get<string[]>(`/api/school/readonly-grants/${member.userId}`) });
+  const save = useMutation({ mutationFn: (ids: string[]) => api.put(`/api/school/readonly-grants/${member.userId}`, ids), onSuccess: onClose });
+  const chosen = selected ?? new Set(current.data ?? []);
+
+  const toggle = (id: string) => {
+    const next = new Set(chosen);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setSelected(next);
+  };
+
+  return (
+    <Dialog
+      open
+      onClose={onClose}
+      title={`Turmas de ${member.displayName}`}
+      description="O perfil Consulta vê apenas dados cadastrais dos alunos destas turmas."
+      footer={
+        <>
+          <Button onClick={onClose}>Cancelar</Button>
+          <Button variant="primary" disabled={save.isPending || !current.data} onClick={() => save.mutate([...chosen])}>
+            Salvar ({chosen.size})
+          </Button>
+        </>
+      }
+    >
+      {save.error ? <Alert tone="critical" className="mb-3" title={save.error instanceof ApiError ? save.error.message : "Não foi possível salvar."} /> : null}
+      <div className="grid max-h-80 grid-cols-2 gap-2 overflow-y-auto sm:grid-cols-3">
+        {classrooms.data?.map((c) => (
+          <label key={c.id} className="flex cursor-pointer items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm hover:bg-surface-sunken">
+            <input type="checkbox" className="size-4 accent-(--primary)" checked={chosen.has(c.id)} onChange={() => toggle(c.id)} />
+            {c.name}
+          </label>
+        ))}
+      </div>
     </Dialog>
   );
 }

@@ -12,7 +12,7 @@ Legenda: 🔒 segurança bloqueante · 🧪 inclui teste de negação/isolamento
 | F0-02 ✅ | `infra/docker-compose.yml`: PostgreSQL, PgBouncer, Mailpit, SeaweedFS (S3), Vault dev; bootstrap do Vault (engines, políticas `platform` e `tenant-app`) | — |
 | F0-03 ✅ | CI: build, testes, lint, testes de arquitetura (NetArchTest) | F0-01 |
 | F0-04 ✅ | Middlewares base: ProblemDetails, correlation id, Serilog sanitizado com `tenant_id`, cabeçalhos de segurança, `no-store`, rate limiting | F0-01 |
-| F0-05 🟡 | Gerador de dados fictícios (escolas, turmas, alunos, responsáveis) — por ora só dados estáticos nos fronts; o gerador entra junto com F2-05 | F0-01 |
+| F0-05 ✅ | Gerador de dados fictícios (escolas, turmas, alunos, responsáveis) — amostra anonimizada real + comando `import-sample` | F0-01 |
 | F0-06 ✅ | Desenvolvimento local com subdomínios `*.localhost` (proxies do Vite e Kestrel) | F0-01 |
 
 ## Fase 1 — Fundação multi-tenant e segurança
@@ -41,7 +41,7 @@ Legenda: 🔒 segurança bloqueante · 🧪 inclui teste de negação/isolamento
 | P-02 ✅ | Escolas: listar, cadastrar (slug validado), acompanhar provisionamento, tentar de novo em caso de falha | P-01, F1-02 |
 | P-03 ✅ | Suspender/reativar escola, com motivo e auditoria | P-02 |
 | P-04 | Redes (cadastro e vínculo com escolas) | P-02 |
-| P-05 | Migrations: versão de schema por escola, atualização em lote | P-02 |
+| P-05 🟡 | Migrations: versão de schema por escola, atualização em lote — comando `migrate-tenants` e endpoint prontos; falta a tela | P-02 |
 | P-06 | Planos e pagantes | P-01 |
 | P-07 | Contratos (escolas cobertas, vigência, empenho) | P-06, P-02 |
 | P-08 | Faturas: lançamento, baixa manual, NF | P-07 |
@@ -56,15 +56,15 @@ Legenda: 🔒 segurança bloqueante · 🧪 inclui teste de negação/isolamento
 
 | ID | Item | Dep. |
 |----|------|------|
-| F2-01 🧪 | Perfil da escola, anos letivos e bimestres | F1-08 |
-| F2-02 🧪 | Séries e turmas | F2-01 |
-| F2-03 🧪 | Profissionais e vínculos com turmas | F2-02 |
-| F2-04 🧪 | Concessão de turmas ao perfil Consulta | F2-02, F1-12 |
-| F2-05 🧪 | Alunos, matrículas (histórico), endereços versionados | F2-02 |
-| F2-06 🧪 | Responsáveis N:N, autorização de contato | F2-05 |
-| F2-07 🧪 | Escopo de aluno para Professor/Consulta | F2-03, F2-04, F2-05 |
-| F2-08 🧪 | Busca de alunos paginada e restrita ao escopo | F2-07 |
-| F2-09 | Front: períodos, turmas, lista de alunos, painel do aluno (sem abas sensíveis) | F2-01..F2-08 |
+| F2-01 🧪 ✅ | Perfil da escola, anos letivos e bimestres | F1-08 |
+| F2-02 🧪 ✅ | Séries e turmas | F2-01 |
+| F2-03 🧪 ✅ | Profissionais e vínculos com turmas | F2-02 |
+| F2-04 🧪 ✅ | Concessão de turmas ao perfil Consulta | F2-02, F1-12 |
+| F2-05 🧪 ✅ | Alunos, matrículas (histórico), endereços versionados | F2-02 |
+| F2-06 🧪 🟡 | Responsáveis N:N, autorização de contato — cadastro e exibição prontos; edição de responsáveis na tela fica para a importação (F3) | F2-05 |
+| F2-07 🧪 ✅ | Escopo de aluno para Professor/Consulta | F2-03, F2-04, F2-05 |
+| F2-08 🧪 ✅ | Busca de alunos paginada e restrita ao escopo | F2-07 |
+| F2-09 ✅ | Front: períodos, turmas, lista de alunos, painel do aluno (sem abas sensíveis) | F2-01..F2-08 |
 | F2-10 🟡 | Front: administração da escola (usuários, convites, vínculos, categorias, aprovação de suporte) — usuários e convites prontos | F1-12, F2-03, P-11 |
 | F2-11 | Contrato OpenAPI + cliente TypeScript gerado | F2-05 |
 

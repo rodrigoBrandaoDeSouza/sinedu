@@ -71,12 +71,20 @@ Interpretações feitas na arquitetura. Valem como padrão até serem confirmada
 | P12 | **Escola suspensa:** ninguém faz login (mensagem de suspensão); dados preservados; jobs pausados. |
 | P13 | O painel mostra, por escola: nº de alunos ativos, turmas, usuários ativos, armazenamento, e-mails enviados no mês, falhas de jobs e versão do banco. Nenhum nome ou dado de aluno. |
 
+## Achados da planilha real (para a importação — Fase 3)
+
+- **CGM repetido:** o arquivo real tem um mesmo CGM em duas linhas. A importação precisa detectar e pedir revisão, não criar dois alunos.
+- **Dois formatos de turma:** `6º A Manhã` (cadastro) e `6º Série A Manhã - <código>` (frequência). O mapeamento precisa aceitar os dois e guardar o código da turma de origem.
+- **Texto livre em colunas de checklist:** nomes e cidades digitados por engano em colunas de documentos. A importação deve validar contra listas fechadas e marcar o resto para revisão.
+- **Sem autorização de contato:** o arquivo não traz autorização para contatar o responsável. Importamos com `contato não autorizado` (spec §6.1); a escola registra a autorização depois.
+- **Observações livres podem conter dados sensíveis:** nunca importar texto livre para o cadastro comum.
+
 ## Pendências (não bloqueiam o início)
 
 - [ ] Domínio definitivo e acesso ao DNS (certificado wildcard via desafio DNS).
 - [ ] Gerador de PDF: avaliar licença do QuestPDF para uso por órgão público.
 - [ ] Prazos de retenção e descarte — definir com as redes e assessoria LGPD.
-- [ ] Amostras anonimizadas de importação (D7), necessárias antes da Fase 3.
+- [x] Amostras anonimizadas de importação (D7) — `.doc/amostras/alunos-2026-anonimizado.xlsx` (1.032 alunos, 34 turmas), carregada na `escola-teste`.
 - [ ] Modelo de texto padrão das comunicações aos responsáveis.
 
 ### Pendências técnicas da Fase 1 (antes da homologação — F6-08)

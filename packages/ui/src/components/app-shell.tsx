@@ -28,6 +28,8 @@ export interface AppShellProps {
   /** Elemento à esquerda da busca (ex.: seletor de escola). */
   topbarLeading?: ReactNode;
   searchPlaceholder?: string;
+  /** Enter na busca global. */
+  onSearch?: (query: string) => void;
   children: ReactNode;
 }
 
@@ -38,6 +40,7 @@ export function AppShell({
   topbarActions,
   topbarLeading,
   searchPlaceholder,
+  onSearch,
   children,
 }: AppShellProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -141,6 +144,9 @@ export function AppShell({
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
               <input
                 type="search"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && onSearch) onSearch(e.currentTarget.value.trim());
+                }}
                 placeholder={searchPlaceholder}
                 aria-label={searchPlaceholder}
                 autoComplete="off"

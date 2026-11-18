@@ -51,6 +51,14 @@ if (args.Contains("migrate") || configuration.GetValue<bool>("Database:MigrateOn
     await PlatformDatabase.MigrateAsync(app.Services);
 }
 
+if (args.Contains("migrate-tenants") || args.Contains("seed-dev"))
+{
+    await using var scope = app.Services.CreateAsyncScope();
+    var (updated, error) = await scope.ServiceProvider.GetRequiredService<TenantProvisioner>().MigrateOutdatedAsync(CancellationToken.None);
+    Console.WriteLine($"Escolas atualizadas para o schema {TenantSchema.Version}: {updated}{(error is null ? "" : $" — erro: {error}")}");
+    if (!args.Contains("seed-dev")) return;
+}
+
 if (args.Contains("seed-dev"))
 {
     await DevSeeder.RunAsync(app.Services);

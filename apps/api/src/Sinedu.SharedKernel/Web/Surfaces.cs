@@ -38,6 +38,8 @@ public static class Policies
     public const string SchoolManager = "school:manager";
     public const string SchoolConfig = "school:config";
     public const string PedagogicalStaff = "school:pedagogical";
+    public const string SchoolTeam = "school:team";
+    public const string StudentReader = "school:student-reader";
     public const string RecentStrongAuth = "school:recent-strong-auth";
 }
 

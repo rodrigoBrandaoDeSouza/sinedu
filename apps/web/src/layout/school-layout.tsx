@@ -14,7 +14,7 @@ import {
   Users,
   UsersRound,
 } from "lucide-react";
-import { Outlet } from "react-router";
+import { Outlet, useNavigate } from "react-router";
 import { roleLabels, useSession, type SchoolRole } from "../lib/session";
 import { SessionProvider } from "../lib/session-provider";
 
@@ -28,6 +28,7 @@ export function SchoolLayout() {
 
 function SchoolShell() {
   const me = useSession();
+  const navigate = useNavigate();
   const has = (...roles: SchoolRole[]) => me.roles.some((r) => roles.includes(r));
   const pedagogical = has("DIRETOR", "PEDAGOGO");
   const config = has("DIRETOR", "ADMIN_TECNICO");
@@ -38,7 +39,7 @@ function SchoolShell() {
       title: "Gestão escolar",
       items: [
         { to: "/turmas", label: "Turmas", icon: BookOpenCheck },
-        { to: "/alunos", label: "Alunos", icon: GraduationCap },
+        ...(has("ADMIN_TECNICO") && !pedagogical && !has("PROFESSOR", "CONSULTA") ? [] : [{ to: "/alunos", label: "Alunos", icon: GraduationCap }]),
         ...(config || pedagogical ? [{ to: "/equipe", label: "Equipe", icon: UsersRound }] : []),
       ],
     },
@@ -88,7 +89,8 @@ function SchoolShell() {
     <AppShell
       brand={{ name: "Sinedu", subtitle: me.school.name }}
       sections={sections}
-      searchPlaceholder={pedagogical || has("PROFESSOR", "CONSULTA") ? "Buscar aluno por nome ou código" : undefined}
+      searchPlaceholder={pedagogical || has("PROFESSOR", "CONSULTA", "SUPORTE_PLATAFORMA") ? "Buscar aluno por nome ou CGM" : undefined}
+      onSearch={(q) => navigate(`/alunos${q ? `?q=${encodeURIComponent(q)}` : ""}`)}
       topbarLeading={
         <a
           href={me.accountUrl}

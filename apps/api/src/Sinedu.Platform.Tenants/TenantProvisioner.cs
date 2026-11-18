@@ -81,6 +81,35 @@ public sealed partial class TenantProvisioner(
         }
     }
 
+    /// <summary>Atualiza o schema de todas as escolas ativas/suspensas desatualizadas. Para no primeiro erro.</summary>
+    public async Task<(int Updated, string? Error)> MigrateOutdatedAsync(CancellationToken cancellationToken)
+    {
+        var outdated = await db.Tenants
+            .Where(t => (t.Status == TenantStatus.Active || t.Status == TenantStatus.Suspended) && t.SchemaVersion != TenantSchema.Version)
+            .OrderBy(t => t.CreatedAt)
+            .ToListAsync(cancellationToken);
+        var updated = 0;
+        foreach (var tenant in outdated)
+        {
+            try
+            {
+                await MigrateAsync(tenant, cancellationToken);
+                await db.SaveChangesAsync(cancellationToken);
+                await audit.WriteAsync(new AuditEntry("tenant_migrated", ResourceType: "tenant", ResourceId: tenant.Id.ToString()), cancellationToken);
+                updated++;
+            }
+#pragma warning disable CA1031 // O erro é devolvido ao painel; as demais escolas ficam para nova tentativa.
+            catch (Exception ex)
+#pragma warning restore CA1031
+            {
+                LogFailed(logger, ex, tenant.Slug);
+                return (updated, $"{tenant.Slug}: {Sanitize(ex)}");
+            }
+        }
+
+        return (updated, null);
+    }
+
     /// <summary>Atualiza o schema de uma escola já ativa (painel → migrations em lote).</summary>
     public async Task MigrateAsync(Tenant tenant, CancellationToken cancellationToken)
     {

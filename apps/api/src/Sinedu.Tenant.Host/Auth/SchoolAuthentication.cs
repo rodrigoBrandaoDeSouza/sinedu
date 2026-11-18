@@ -131,6 +131,8 @@ public static class SchoolAuthentication
             .AddPolicy(Policies.SchoolManager, p => p.RequireClaim(SchoolClaims.Role, Roles.Director))
             .AddPolicy(Policies.SchoolConfig, p => p.RequireClaim(SchoolClaims.Role, Roles.Director, Roles.TechAdmin))
             .AddPolicy(Policies.PedagogicalStaff, p => p.RequireClaim(SchoolClaims.Role, Roles.Director, Roles.Pedagogue))
+            .AddPolicy(Policies.SchoolTeam, p => p.RequireClaim(SchoolClaims.Role, Roles.Director, Roles.Pedagogue, Roles.TechAdmin))
+            .AddPolicy(Policies.StudentReader, p => p.RequireClaim(SchoolClaims.Role, Roles.Director, Roles.Pedagogue, Roles.Teacher, Roles.ReadOnly, Roles.PlatformSupport))
             .AddPolicy(Policies.RecentStrongAuth, p => p
                 .RequireClaim(SchoolClaims.Role, Roles.Director, Roles.Pedagogue)
                 .AddRequirements(new RecentStrongAuthRequirement()));

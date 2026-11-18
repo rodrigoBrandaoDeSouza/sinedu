@@ -25,6 +25,7 @@ internal static class DevSeeder
     [
         ("escola-demo", "Colégio Estadual Demonstração", "diretora@escola-demo.local", "Diretora Fictícia"),
         ("escola-modelo", "Escola Municipal Modelo", "diretor@escola-modelo.local", "Diretor Fictício"),
+        ("escola-teste", "Colégio Estadual de Teste (amostra anonimizada)", "diretora@escola-teste.local", "Diretora de Teste"),
     ];
 
     public static async Task RunAsync(IServiceProvider root)

@@ -77,6 +77,12 @@ public sealed class TenantsModule : IModule
             ChangeStatusAsync(id, TenantStatus.Suspended, TenantStatus.Active, body.Reason, "tenant_reactivated", db, audit, clock, ct))
             .RequireAuthorization(Policies.PlatformSuperAdmin);
 
+        tenants.MapPost("/migrate", async (TenantProvisioner provisioner, CancellationToken ct) =>
+        {
+            var (updated, error) = await provisioner.MigrateOutdatedAsync(ct);
+            return Results.Ok(new { updated, error, version = TenantSchema.Version });
+        }).RequireAuthorization(Policies.PlatformSuperAdmin);
+
         var networks = endpoints.MapPanelApi("/networks").RequireAuthorization(Policies.PlatformStaff);
         networks.MapGet("/", async (TenantsDbContext db, CancellationToken ct) =>
             await db.Networks.AsNoTracking().OrderBy(n => n.Name).ToListAsync(ct));

@@ -1,0 +1,12 @@
+{
+  "name": "sinedu-anonimizacao",
+  "private": true,
+  "type": "module",
+  "description": "Ferramenta local para anonimizar planilhas reais antes de usá-las como amostra. Nunca versionar a planilha original.",
+  "scripts": {
+    "documentos-alunos": "node anonimizar-documentos-alunos.mjs"
+  },
+  "dependencies": {
+    "exceljs": "4.4.0"
+  }
+}

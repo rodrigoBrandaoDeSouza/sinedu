@@ -25,6 +25,8 @@
     <ProjectReference Include="..\..\src\Sinedu.Platform.Host\Sinedu.Platform.Host.csproj" />
     <ProjectReference Include="..\..\src\Sinedu.Tenant.Host\Sinedu.Tenant.Host.csproj" />
     <ProjectReference Include="..\..\src\Sinedu.Tenant.Migrations\Sinedu.Tenant.Migrations.csproj" />
+    <ProjectReference Include="..\..\src\Sinedu.Tenant.School\Sinedu.Tenant.School.csproj" />
+    <ProjectReference Include="..\..\src\Sinedu.Tenant.Students\Sinedu.Tenant.Students.csproj" />
   </ItemGroup>
 
 </Project>

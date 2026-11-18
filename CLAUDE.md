@@ -96,6 +96,8 @@ docker compose -f infra/docker-compose.yml up -d
 dotnet build apps/api/Sinedu.slnx
 dotnet test apps/api/Sinedu.slnx
 dotnet run --project apps/api/src/Sinedu.Platform.Host -- migrate seed-dev   # banco + contas e escolas fictícias
+dotnet run --project apps/api/src/Sinedu.Platform.Host -- migrate-tenants    # atualiza o schema das escolas desatualizadas
+dotnet run --project apps/api/src/Sinedu.Tenant.Host -- import-sample escola-teste <caminho absoluto do .xlsx em .doc/amostras>
 dotnet run --project apps/api/src/Sinedu.Platform.Host   # :5100 → conta.localhost / painel.localhost
 dotnet run --project apps/api/src/Sinedu.Tenant.Host     # :5200 → {escola}.localhost
 
@@ -145,7 +147,10 @@ Em desenvolvimento, `*.localhost` resolve para 127.0.0.1 sem configurar DNS. O V
 
 ## Dados de teste
 
-**Nunca** usar dados reais de crianças em seeds, testes, prints ou demonstrações. Amostras em `.doc/amostras/` são sempre anonimizadas. Testes de integração provisionam **pelo menos duas escolas**.
+**Nunca** usar dados reais de crianças em seeds, testes, prints ou demonstrações. Amostras em `.doc/amostras/` são sempre anonimizadas.
+
+- Arquivos reais recebidos das escolas ficam em `.doc/files/` (no `.gitignore`). **Não abrir nem imprimir o conteúdo**: para entender a estrutura, imprima só cabeçalhos, contagens e formatos (nunca valores), e anonimize com `tools/anonimizacao/` — que confere no fim que nenhum valor real sobrou.
+- Escopo de alunos (quem vê quais turmas, responsáveis e endereço) vem de `IViewerScopeProvider` (módulo School). Endpoints de aluno devem usá-lo e responder 404 fora do escopo. Testes de integração provisionam **pelo menos duas escolas**.
 
 ## Ordem de implementação
 
