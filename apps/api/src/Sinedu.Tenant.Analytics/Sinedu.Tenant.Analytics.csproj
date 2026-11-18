@@ -5,6 +5,11 @@
     <ProjectReference Include="..\Sinedu.Tenant.Occurrences\Sinedu.Tenant.Occurrences.csproj" />
     <ProjectReference Include="..\Sinedu.Tenant.Students\Sinedu.Tenant.Students.csproj" />
     <ProjectReference Include="..\Sinedu.Tenant.School\Sinedu.Tenant.School.csproj" />
+    <ProjectReference Include="..\Sinedu.Tenant.Notifications\Sinedu.Tenant.Notifications.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="QuestPDF" Version="2026.9.2" />
   </ItemGroup>
 
   <PropertyGroup>

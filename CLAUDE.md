@@ -97,6 +97,7 @@ dotnet build apps/api/Sinedu.slnx
 dotnet test apps/api/Sinedu.slnx
 dotnet run --project apps/api/src/Sinedu.Platform.Host -- migrate seed-dev   # banco + contas e escolas fictícias
 dotnet run --project apps/api/src/Sinedu.Platform.Host -- migrate-tenants    # atualiza o schema das escolas desatualizadas
+dotnet run --project apps/api/src/Sinedu.Platform.Host -- create-super-admin <e-mail> "<Nome>"   # instalação nova (uso único)
 dotnet run --project apps/api/src/Sinedu.Tenant.Host -- import-sample escola-teste <caminho absoluto do .xlsx em .doc/amostras> [aba]   # usa o mesmo pipeline da importação
 dotnet run --project apps/api/src/Sinedu.Tenant.Host -- rewrap-protected escola-teste   # após rotacionar a chave da escola no Vault (runbook em .doc/arquitetura)
 dotnet run --project apps/api/src/Sinedu.Platform.Host   # :5100 → conta.localhost / painel.localhost
@@ -112,6 +113,7 @@ npm run dev:conta      # http://conta.localhost:5175
 npm run dev:web        # http://escola-demo.localhost:5173
 npm run dev:painel     # http://painel.localhost:5174
 npm run lint && npm run typecheck && npm test && npm run build
+npm run e2e           # Playwright contra o ambiente local inteiro rodando (pasta e2e/)
 ```
 
 Em desenvolvimento, `*.localhost` resolve para 127.0.0.1 sem configurar DNS. O Vite repassa `/api`, `/auth` e os callbacks do OIDC mantendo o `Host`, e a API identifica a escola pelo subdomínio. Contas de dev e o segredo TOTP estão no [README](README.md).
@@ -154,6 +156,8 @@ Em desenvolvimento, `*.localhost` resolve para 127.0.0.1 sem configurar DNS. O V
 - Escopo de alunos (quem vê quais turmas, responsáveis e endereço) vem de `IViewerScopeProvider` (módulo School). Endpoints de aluno devem usá-lo e responder 404 fora do escopo. Testes de integração provisionam **pelo menos duas escolas**.
 
 ## Ordem de implementação
+
+Operação, deploy e backup: [guia de operação](.doc/operacao/guia-de-operacao.md). Evidências de segurança: [relatório](.doc/relatorios/revisao-seguranca-mvp.md).
 
 Ver [backlog](.doc/arquitetura/backlog.md): **0** esqueleto → **1** fundação multi-tenant e segurança → **2** cadastros → **3** importação → **4** módulos protegidos → **5** ocorrências e comunicações → **6** indicadores e implantação. A fase **P** (painel) corre em paralelo a partir do login único.
 

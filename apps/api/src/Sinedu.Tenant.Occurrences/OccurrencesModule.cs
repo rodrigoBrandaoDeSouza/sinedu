@@ -40,6 +40,7 @@ public sealed class OccurrencesModule : IModule
         services.AddScoped<OccurrenceService>();
         services.AddScoped<OccurrenceDocuments>();
         services.AddScoped<IOccurrenceDirectory, OccurrenceDirectory>();
+        services.AddScoped<IOccurrenceStatistics, OccurrenceStatistics>();
     }
 
     public void MapEndpoints(IEndpointRouteBuilder endpoints)

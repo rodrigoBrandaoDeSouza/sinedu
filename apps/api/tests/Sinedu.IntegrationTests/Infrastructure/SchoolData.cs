@@ -81,6 +81,47 @@ public static class SchoolData
         return (student.Id, student.InstitutionalCode!);
     }
 
+/// <summary>Turma nova no ano do sample (com os bimestres padrão garantidos) — para indicadores com contagem exata.</summary>
+    public static async Task<Guid> NewClassroomAsync(SineduFixture fx, string slug, string section)
+    {
+        var sample = await EnsureAsync(fx, slug);
+        var connection = await fx.SchoolConnectionAsync(slug, owner: true);
+        await using var school = new SchoolDbContext(new DbContextOptionsBuilder<SchoolDbContext>().UseSineduPostgres(connection, SchoolDbContext.Schema).Options);
+        await Lock.WaitAsync();
+        try
+        {
+            var year = await school.Years.Include(y => y.Terms).FirstAsync(y => y.Id == sample.YearId);
+            if (year.Terms.Count == 0)
+            {
+                school.Terms.AddRange(SchoolModule.StandardTerms(year));
+                await school.SaveChangesAsync();
+            }
+        }
+        finally
+        {
+            Lock.Release();
+        }
+
+        var grade = await school.Classrooms.Where(c => c.Id == sample.ClassroomX).Select(c => c.GradeId).FirstAsync();
+        var classroom = new Classroom { Id = Guid.CreateVersion7(), SchoolYearId = sample.YearId, GradeId = grade, Section = section, Shift = Shift.Noite, Status = ClassroomStatus.Active };
+        school.Classrooms.Add(classroom);
+        await school.SaveChangesAsync();
+        return classroom.Id;
+    }
+
+    public static async Task<Guid> NewStudentInAsync(SineduFixture fx, string slug, Guid classroomId, string name)
+    {
+        var connection = await fx.SchoolConnectionAsync(slug, owner: true);
+        await using var school = new SchoolDbContext(new DbContextOptionsBuilder<SchoolDbContext>().UseSineduPostgres(connection, SchoolDbContext.Schema).Options);
+        await using var students = new StudentsDbContext(new DbContextOptionsBuilder<StudentsDbContext>().UseSineduPostgres(connection, StudentsDbContext.Schema).Options);
+        var classroom = await school.Classrooms.FirstAsync(c => c.Id == classroomId);
+        var year = await school.Years.FirstAsync(y => y.Id == classroom.SchoolYearId);
+        var student = NewStudent(name, classroom, year);
+        students.Add(student);
+        await students.SaveChangesAsync();
+        return student.Id;
+    }
+
     private static Student NewStudent(string name, Classroom classroom, SchoolYear year)
     {
         var student = new Student

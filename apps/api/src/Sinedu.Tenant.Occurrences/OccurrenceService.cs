@@ -50,6 +50,34 @@ public interface IOccurrenceDirectory
     Task<OccurrenceRef?> FindFormalizedAsync(Guid id, CancellationToken ct = default);
 }
 
+/// <summary>Linha mínima para indicadores: sem descrição, envolvidos ou qualquer texto livre.</summary>
+public sealed record OccurrenceFact(Guid Id, Guid StudentId, Guid ClassroomId, Guid CategoryId, string Category, OccurrenceStatus Status, DateTimeOffset OccurredAt, string CreatedByName);
+
+public interface IOccurrenceStatistics
+{
+    /// <summary>Ocorrências que contam nos indicadores: registradas ou posteriores, nunca rascunho nem cancelada (P4), pela data do fato.</summary>
+    Task<IReadOnlyList<OccurrenceFact>> CountableAsync(DateTimeOffset from, DateTimeOffset toExclusive, CancellationToken ct = default);
+
+    Task<IReadOnlyList<(Guid Id, string Name)>> CategoriesAsync(CancellationToken ct = default);
+}
+
+internal sealed class OccurrenceStatistics(OccurrencesDbContext db) : IOccurrenceStatistics
+{
+    public async Task<IReadOnlyList<OccurrenceFact>> CountableAsync(DateTimeOffset from, DateTimeOffset toExclusive, CancellationToken ct = default)
+    {
+        var categories = await db.Categories.AsNoTracking().ToDictionaryAsync(c => c.Id, c => c.Name, ct);
+        var rows = await db.Occurrences.AsNoTracking()
+            .Where(o => o.OccurredAt >= from && o.OccurredAt < toExclusive
+                && o.Status != OccurrenceStatus.Rascunho && o.Status != OccurrenceStatus.Cancelada)
+            .Select(o => new { o.Id, o.StudentId, o.ClassroomId, o.CategoryId, o.Status, o.OccurredAt, o.CreatedByName })
+            .ToListAsync(ct);
+        return rows.Select(o => new OccurrenceFact(o.Id, o.StudentId, o.ClassroomId, o.CategoryId, categories.GetValueOrDefault(o.CategoryId, "—"), o.Status, o.OccurredAt, o.CreatedByName)).ToList();
+    }
+
+    public async Task<IReadOnlyList<(Guid Id, string Name)>> CategoriesAsync(CancellationToken ct = default) =>
+        (await db.Categories.AsNoTracking().OrderBy(c => c.SortOrder).ThenBy(c => c.Name).ToListAsync(ct)).Select(c => (c.Id, c.Name)).ToList();
+}
+
 internal sealed class OccurrenceDirectory(OccurrencesDbContext db) : IOccurrenceDirectory
 {
     public Task<OccurrenceRef?> FindFormalizedAsync(Guid id, CancellationToken ct = default) =>

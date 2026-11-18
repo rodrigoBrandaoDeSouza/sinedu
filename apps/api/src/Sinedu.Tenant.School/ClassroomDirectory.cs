@@ -100,3 +100,42 @@ internal sealed class SchoolProfileReader(SchoolDbContext db, Sinedu.SharedKerne
             : new SchoolHeader(p.Name, p.InstitutionalCode, p.Address, p.Phone, p.Email);
     }
 }
+
+/// <summary>Calendário letivo e turmas, para indicadores (contrato público do módulo School).</summary>
+public sealed record TermInfo(int Number, string Name, DateOnly StartsOn, DateOnly EndsOn);
+
+public sealed record YearInfo(Guid Id, int Year, bool IsActive, IReadOnlyList<TermInfo> Terms);
+
+public sealed record ClassroomInfo(Guid Id, string Name, string Shift, int GradeOrder);
+
+public interface ISchoolCalendar
+{
+    Task<IReadOnlyList<YearInfo>> GetYearsAsync(CancellationToken ct = default);
+
+    Task<IReadOnlyList<ClassroomInfo>> GetClassroomsAsync(Guid yearId, CancellationToken ct = default);
+}
+
+internal sealed class SchoolCalendar(SchoolDbContext db) : ISchoolCalendar
+{
+    public async Task<IReadOnlyList<YearInfo>> GetYearsAsync(CancellationToken ct = default)
+    {
+        var years = await db.Years.AsNoTracking().OrderByDescending(y => y.Year).ToListAsync(ct);
+        var terms = await db.Terms.AsNoTracking().OrderBy(t => t.Number).ToListAsync(ct);
+        return years.Select(y => new YearInfo(y.Id, y.Year, y.Status == SchoolYearStatus.Active,
+            terms.Where(t => t.SchoolYearId == y.Id).Select(t => new TermInfo(t.Number, t.Name, t.StartsOn, t.EndsOn)).ToList())).ToList();
+    }
+
+    public async Task<IReadOnlyList<ClassroomInfo>> GetClassroomsAsync(Guid yearId, CancellationToken ct = default) =>
+        (await db.Classrooms.AsNoTracking().Include(c => c.Grade).Where(c => c.SchoolYearId == yearId).ToListAsync(ct))
+            .OrderBy(c => c.Grade!.SortOrder).ThenBy(c => c.Section)
+            .Select(c => new ClassroomInfo(c.Id, Classroom.DisplayName(c.Grade!.ShortName, c.Section, c.Shift), ShiftName(c.Shift), c.Grade.SortOrder))
+            .ToList();
+
+    private static string ShiftName(Shift s) => s switch
+    {
+        Shift.Manha => "Manhã",
+        Shift.Tarde => "Tarde",
+        Shift.Noite => "Noite",
+        _ => "Integral",
+    };
+}

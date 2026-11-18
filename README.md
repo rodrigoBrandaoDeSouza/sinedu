@@ -59,6 +59,11 @@ Criadas pelo `seed-dev`. **Somente para uso local.**
 
 > As credenciais em `infra/` e em `appsettings.Development.json` são **somente de desenvolvimento**.
 
+## Operação e segurança
+
+- [Guia de operação](.doc/operacao/guia-de-operacao.md): variáveis, implantação na VPS, atualização, backup e restauração por escola.
+- [Revisão de segurança do MVP](.doc/relatorios/revisao-seguranca-mvp.md): regras bloqueantes e os testes que as garantem.
+
 ## Testes e qualidade
 
 ```bash
@@ -67,6 +72,7 @@ npm run lint                       # ESLint nos fronts
 npm run typecheck                  # TypeScript estrito
 npm test                           # Vitest nos fronts
 npm run build                      # build de produção dos fronts
+npm run e2e                        # Playwright contra o ambiente local rodando
 ```
 
 Os testes de integração sobem um PostgreSQL descartável, provisionam duas escolas de verdade e verificam isolamento, matriz de permissões, step-up e regras de conta.

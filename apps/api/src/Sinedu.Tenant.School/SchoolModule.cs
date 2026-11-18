@@ -22,6 +22,7 @@ public sealed class SchoolModule : IModule
         services.AddScoped<IViewerScopeProvider, ViewerScopeProvider>();
         services.AddScoped<IClassroomDirectory, ClassroomDirectory>();
         services.AddScoped<ISchoolProfileReader, SchoolProfileReader>();
+        services.AddScoped<ISchoolCalendar, SchoolCalendar>();
     }
 
     public void MapEndpoints(IEndpointRouteBuilder endpoints)

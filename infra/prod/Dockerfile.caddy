@@ -1,0 +1,22 @@
+# Caddy com o plugin de DNS para o certificado wildcard (*.sinedu.com.br) e os três fronts estáticos.
+# docker build -f infra/prod/Dockerfile.caddy --build-arg DNS_PROVIDER=cloudflare -t sinedu/caddy .
+FROM node:22-alpine AS fronts
+WORKDIR /src
+COPY package.json package-lock.json ./
+COPY packages/ packages/
+COPY apps/web/ apps/web/
+COPY apps/painel/ apps/painel/
+COPY apps/conta/ apps/conta/
+RUN npm ci && npm run build
+
+ARG DNS_PROVIDER=cloudflare
+FROM caddy:2.10-builder AS caddy
+ARG DNS_PROVIDER
+RUN xcaddy build --with github.com/caddy-dns/${DNS_PROVIDER}
+
+FROM caddy:2.10
+COPY --from=caddy /usr/bin/caddy /usr/bin/caddy
+COPY --from=fronts /src/apps/web/dist /srv/web
+COPY --from=fronts /src/apps/painel/dist /srv/painel
+COPY --from=fronts /src/apps/conta/dist /srv/conta
+COPY infra/prod/Caddyfile /etc/caddy/Caddyfile

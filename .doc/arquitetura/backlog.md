@@ -117,14 +117,14 @@ Legenda: 🔒 segurança bloqueante · 🧪 inclui teste de negação/isolamento
 
 | ID | Item | Dep. |
 |----|------|------|
-| F6-01 🧪 | Indicadores da seção 9 da spec (data do fato, turma histórica, denominador documentado) | F5-01 |
-| F6-02 | Comparação entre turmas, taxa por 100 alunos, evolução semanal, bimestre anterior | F6-01 |
-| F6-03 🧪 | Exportação CSV/PDF com supressão < 5 | F6-01 |
-| F6-04 | Front: dashboard e relatórios | F6-01..F6-03 |
-| F6-05 | E2E (Playwright): login único, troca de escola, fluxos principais, painel | F6-04, P-08 |
-| F6-06 | Documentação: instalação local, variáveis, migrations, testes, deploy, backup/restauração por escola, provisionamento | — |
-| F6-07 🔒 | Revisão de segurança final + relatório de testes + matriz validada (entregável de evidência) | todos |
-| F6-08 | Homologação na VPS: Caddy com certificado wildcard, Vault, backups cifrados por escola | F6-06 |
+| F6-01 🧪 ✅ | Indicadores da seção 9 da spec (data do fato, turma histórica, denominador documentado) | F5-01 |
+| F6-02 ✅ | Comparação entre turmas, taxa por 100 alunos, evolução semanal, bimestre anterior | F6-01 |
+| F6-03 🧪 ✅ | Exportação CSV/PDF com supressão < 5 | F6-01 |
+| F6-04 ✅ | Front: dashboard e relatórios | F6-01..F6-03 |
+| F6-05 ✅ | E2E (Playwright): login único, troca de escola, fluxos principais, painel — `npm run e2e` (pasta `e2e/`) | F6-04, P-08 |
+| F6-06 ✅ | Documentação: instalação local, variáveis, migrations, testes, deploy, backup/restauração por escola, provisionamento | — |
+| F6-07 🔒 ✅ | Revisão de segurança final + relatório de testes + matriz validada (entregável de evidência) — [relatório](../relatorios/revisao-seguranca-mvp.md) | todos |
+| F6-08 🟡 | Homologação na VPS: Caddy com certificado wildcard, Vault, backups cifrados por escola — arquivos prontos em `infra/prod`; falta executar na VPS (acesso e DNS) | F6-06 |
 
 ## Caminho crítico
 

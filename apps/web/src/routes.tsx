@@ -1,12 +1,13 @@
 import type { RouteObject } from "react-router";
 import { SchoolLayout } from "./layout/school-layout";
-import { ComingSoonPage } from "./pages/coming-soon-page";
 import { DashboardPage } from "./pages/dashboard-page";
 import { AdminPage } from "./pages/admin-page";
 import { ClassroomPage } from "./pages/classroom-page";
 import { ClassroomsPage } from "./pages/classrooms-page";
 import { ImportPage } from "./pages/import-page";
 import { ImportsPage } from "./pages/imports-page";
+import { NotFoundPage } from "./pages/not-found-page";
+import { ReportsPage } from "./pages/analytics/reports-page";
 import { CommunicationsPage } from "./pages/occurrences/communications-page";
 import { OccurrenceFormPage } from "./pages/occurrences/occurrence-form-page";
 import { OccurrencePage } from "./pages/occurrences/occurrence-page";
@@ -16,11 +17,6 @@ import { StaffPage } from "./pages/staff-page";
 import { StudentPage } from "./pages/student-page";
 import { StudentsPage } from "./pages/students-page";
 import { UsersPage } from "./pages/users-page";
-
-const soon = (path: string, title: string, description: string, backlog: string): RouteObject => ({
-  path,
-  element: <ComingSoonPage title={title} description={description} backlog={backlog} />,
-});
 
 export const routes: RouteObject[] = [
   {
@@ -41,10 +37,10 @@ export const routes: RouteObject[] = [
       { path: "importacoes/:id", element: <ImportPage /> },
       { path: "protegido/pendencias", element: <PendingRoute /> },
       { path: "protegido/importar-saude", element: <HealthImportRoute /> },
-      soon("relatorios", "Relatórios", "Indicadores por bimestre, turma e categoria, com exportação.", "F6-04"),
+      { path: "relatorios", element: <ReportsPage /> },
       { path: "usuarios", element: <UsersPage /> },
       { path: "administracao", element: <AdminPage /> },
-      soon("*", "Página não encontrada", "O endereço acessado não existe.", "—"),
+      { path: "*", element: <NotFoundPage /> },
     ],
   },
 ];

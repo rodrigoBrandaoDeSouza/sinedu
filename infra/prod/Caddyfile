@@ -1,0 +1,56 @@
+# Sinedu — proxy de produção/homologação.
+# Certificado wildcard por desafio DNS (*.{$SINEDU_DOMAIN}). O Host original vai para as APIs, que
+# resolvem a escola pelo subdomínio. Só a rede interna do Docker é aceita como proxy (Sinedu:TrustedProxyNetwork).
+{
+	email {$ACME_EMAIL}
+}
+
+(seguranca) {
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "no-referrer"
+		X-Frame-Options "DENY"
+		-Server
+	}
+	encode zstd gzip
+}
+
+(spa) {
+	# Rotas da API e do OIDC vão para o host; o resto é a SPA (index.html sem cache).
+	@api path /api/* /auth/* /connect/* /signin-oidc /signout-callback-oidc /.well-known/*
+	handle @api {
+		reverse_proxy {args[0]}
+	}
+	handle {
+		root * {args[1]}
+		try_files {path} /index.html
+		@index path /index.html /
+		header @index Cache-Control "no-store"
+		file_server
+	}
+}
+
+conta.{$SINEDU_DOMAIN} {
+	import seguranca
+	tls {
+		dns {$DNS_PROVIDER} {$DNS_API_TOKEN}
+	}
+	import spa platform:8080 /srv/conta
+}
+
+painel.{$SINEDU_DOMAIN} {
+	import seguranca
+	tls {
+		dns {$DNS_PROVIDER} {$DNS_API_TOKEN}
+	}
+	import spa platform:8080 /srv/painel
+}
+
+*.{$SINEDU_DOMAIN} {
+	import seguranca
+	tls {
+		dns {$DNS_PROVIDER} {$DNS_API_TOKEN}
+	}
+	import spa tenant:8080 /srv/web
+}

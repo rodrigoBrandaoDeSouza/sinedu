@@ -233,6 +233,45 @@ public sealed class AccountService(
         return user.Id;
     }
 
+    /// <summary>
+    /// Primeiro SUPER_ADMIN de uma instalação nova (comando <c>create-super-admin</c>). Só funciona enquanto não
+    /// existe nenhum SUPER_ADMIN ativo: depois disso, contas da plataforma só por quem já é SUPER_ADMIN.
+    /// A pessoa recebe convite por e-mail, cria a senha e cadastra o MFA no primeiro acesso.
+    /// </summary>
+    public async Task<Guid> InviteFirstSuperAdminAsync(string email, string fullName, CancellationToken ct)
+    {
+        if (await db.PlatformRoles.AnyAsync(r => r.Role == Roles.SuperAdmin && r.RevokedAt == null, ct))
+        {
+            throw new InvalidOperationException("Já existe um SUPER_ADMIN ativo nesta instalação.");
+        }
+
+        var normalized = Normalize(email);
+        if (await db.Users.AnyAsync(u => u.Email == normalized, ct))
+        {
+            throw new InvalidOperationException("Já existe uma conta com este e-mail.");
+        }
+
+        var now = clock.GetUtcNow();
+        var user = new UserAccount
+        {
+            Id = Guid.CreateVersion7(), Email = normalized, FullName = fullName.Trim(), Status = AccountStatus.Invited, Kind = AccountKind.Platform,
+            SecurityStamp = Guid.NewGuid(), CreatedAt = now,
+        };
+        db.Users.Add(user);
+        db.PlatformRoles.Add(new PlatformRoleGrant { Id = Guid.CreateVersion7(), UserId = user.Id, Role = Roles.SuperAdmin, GrantedAt = now });
+        await db.SaveChangesAsync(ct);
+
+        var token = await IssueTokenAsync(user, AccountTokenPurpose.Invitation, InvitationLifetime, ct);
+        var link = new Uri(urls.Value.AccountUrl, $"convite?token={token}");
+        await emailSender.SendAsync(new EmailMessage(
+            user.Email,
+            "Convite para administrar o Sinedu",
+            $"Olá, {user.FullName}.\n\nVocê foi cadastrado(a) como administrador(a) da plataforma Sinedu.\n\n" +
+            $"Para criar sua senha e cadastrar a verificação em duas etapas, acesse:\n{link}\n\nO link vale por 7 dias."), ct);
+        await audit.WriteAsync(new AuditEntry("platform_first_admin_invited", UserId: user.Id), ct);
+        return user.Id;
+    }
+
     public async Task SyncMembershipAsync(Guid tenantId, Guid userId, bool active, bool privileged, CancellationToken ct)
     {
         var membership = await db.Memberships.FirstOrDefaultAsync(m => m.TenantId == tenantId && m.UserId == userId, ct);

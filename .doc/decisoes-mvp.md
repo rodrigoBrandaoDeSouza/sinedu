@@ -116,6 +116,17 @@ Interpretações feitas na arquitetura. Valem como padrão até serem confirmada
 - **Fila:** um worker no Tenant.Host percorre as escolas ativas a cada minuto, cada uma no próprio escopo (conexão, chave e bucket dela). Desligável por `Notifications:RetryWorker`.
 - **WhatsApp:** interface `INotificationProvider` pronta; o canal aparece como **desabilitado** até a integração oficial ser configurada (spec 6.2).
 
+## Decisões da Fase 6 (indicadores e implantação)
+
+- **O que conta:** ocorrências registradas, em acompanhamento ou concluídas, pela **data do fato** (fuso de São Paulo) e pela **turma gravada na ocorrência**. Rascunhos e canceladas ficam fora (P4).
+- **Denominador:** alunos com matrícula não cancelada na turma em **algum dia do período**. Quem trocou de turma no bimestre conta nas duas turmas e uma vez no total da escola. A explicação aparece no rodapé do dashboard e nas exportações.
+- **Período:** bimestre do calendário da escola (padrão: o bimestre de hoje) ou personalizado (até 400 dias). A comparação é com o bimestre anterior, inclusive o último do ano anterior; no personalizado, com o mesmo número de dias imediatamente antes.
+- **Taxa por 100 alunos** = ocorrências ÷ matriculados × 100, com uma casa decimal. Turmas sem matrícula não têm taxa. O texto do gráfico lembra que a taxa não classifica turmas nem alunos.
+- **Ocorrências por aluno:** página Relatórios, só para Direção e Pedagogia, em **ordem alfabética** (não é ranking) e **nunca exportada**.
+- **Exportação (CSV/PDF):** só agregados (resumo, turmas, categorias e semanas). Contagens de **1 a 4 viram "<5"** (0 continua 0), e a taxa de uma turma com contagem suprimida sai como "—". CSV com BOM e ponto e vírgula, para o Excel em pt-BR, e células que começam com `=`, `+`, `-` ou `@` neutralizadas. Cada exportação fica na auditoria.
+- **Na tela não há supressão:** o dashboard é visto só por quem já tem acesso aos registros individuais. A supressão vale para o que sai do sistema.
+- **Implantação:** imagens próprias (APIs e Caddy com os fronts), certificado wildcard por desafio DNS, `X-Forwarded-*` aceitos só da rede do proxy, certificados OIDC persistentes obrigatórios com cookies seguros, PgBouncer com `auth_query` restrito a `t_*_app`, leitor do registro só com `SELECT` na view e backup por escola cifrado com **age** (chave privada fora da VPS). Primeiro administrador: `create-super-admin`, de uso único.
+
 ## Pendências (não bloqueiam o início)
 
 - [ ] Domínio definitivo e acesso ao DNS (certificado wildcard via desafio DNS).
@@ -127,11 +138,11 @@ Interpretações feitas na arquitetura. Valem como padrão até serem confirmada
 
 ### Pendências técnicas da Fase 1 (antes da homologação — F6-08)
 
-- [ ] **Chaves do OIDC:** hoje são efêmeras (reiniciar a plataforma invalida tokens em trânsito). Produção precisa de certificados de assinatura/criptografia persistentes.
-- [ ] **PgBouncer para bancos de escola:** em dev a aplicação conecta direto no PostgreSQL. Em produção, configurar `auth_query` no PgBouncer para os papéis `t_*_app`.
-- [ ] **Papel de leitura do registro:** o Tenant.Host lê `tenants.v_registry` com um papel próprio, só com `SELECT` nessa view (em dev usa o usuário do Postgres).
+- [x] **Chaves do OIDC:** certificados PFX persistentes (`Oidc:SigningCertificatePath`/`EncryptionCertificatePath`), obrigatórios fora do ambiente local.
+- [ ] **PgBouncer para bancos de escola:** `auth_query` restrito a `t_*_app` pronto em `infra/prod/init-roles.sql`; validar na homologação.
+- [ ] **Papel de leitura do registro:** `sinedu_registry_reader` criado por `infra/prod/init-roles.sql` (em dev ainda usa o usuário do Postgres); validar na homologação.
 - [ ] **Vault em produção:** autenticação AppRole por host, com as políticas `sinedu-platform` e `sinedu-tenant-app` de `infra/vault/policies`.
-- [ ] **Proxy reverso:** `UseForwardedHeaders` + Caddy com certificado wildcard.
+- [x] **Proxy reverso:** `X-Forwarded-*` só da rede do proxy (`Sinedu:TrustedProxyNetwork`) e Caddyfile com wildcard em `infra/prod`.
 
 ### Pendências técnicas da Fase 4
 

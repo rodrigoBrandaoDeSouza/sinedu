@@ -51,3 +51,7 @@ playwright-report/
 # Arquivos reais recebidos das escolas (dados pessoais): nunca versionar.
 # Amostras anonimizadas vão para .doc/amostras/.
 .doc/files/
+
+# Segredos de produção (certificados OIDC, credenciais S3)
+infra/prod/secrets/
+infra/prod/s3.json

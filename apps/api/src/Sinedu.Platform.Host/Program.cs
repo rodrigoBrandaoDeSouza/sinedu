@@ -49,6 +49,18 @@ var app = builder.Build();
 if (args.Contains("migrate") || configuration.GetValue<bool>("Database:MigrateOnStartup"))
 {
     await PlatformDatabase.MigrateAsync(app.Services);
+
+    // `migrate` sozinho (implantação) termina aqui; combinado com outros comandos, segue.
+    if (args.Length == 1 && args[0] == "migrate") return;
+}
+
+// Instalação nova: create-super-admin <e-mail> "<Nome completo>" — convite por e-mail; só se ainda não houver SUPER_ADMIN.
+if (args.Length >= 3 && args[0] == "create-super-admin")
+{
+    await using var scope = app.Services.CreateAsyncScope();
+    var id = await scope.ServiceProvider.GetRequiredService<Sinedu.Platform.Identity.AccountService>().InviteFirstSuperAdminAsync(args[1], args[2], CancellationToken.None);
+    Console.WriteLine($"Convite enviado para {args[1]} (conta {id}).");
+    return;
 }
 
 if (args.Contains("migrate-tenants") || args.Contains("seed-dev"))

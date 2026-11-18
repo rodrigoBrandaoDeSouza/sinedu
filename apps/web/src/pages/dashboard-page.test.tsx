@@ -20,7 +20,8 @@ function signedInAs(roles: SchoolRole[], extra: Record<string, unknown> = {}) {
           accountUrl: "http://conta.localhost:5175/",
         });
       }
-      const body = extra[url];
+      const key = Object.keys(extra).sort((a, b) => b.length - a.length).find((k) => url.startsWith(k));
+      const body = key ? extra[key] : undefined;
       return body ? Response.json(body) : new Response(null, { status: 404 });
     }),
   );
@@ -40,14 +41,34 @@ function renderAt(path: string) {
 
 afterEach(() => vi.unstubAllGlobals());
 
+// Indicadores FICTÍCIOS para o teste (nenhum dado real).
+const analytics = {
+  "/api/analytics/options": {
+    years: [{ id: "y1", year: 2026, isActive: true, terms: [{ number: 4, name: "4º bimestre", startsOn: "2026-10-01", endsOn: "2026-12-18" }] }],
+    yearId: "y1", currentTerm: 4, classrooms: [{ id: "c1", name: "6º A Manhã", shift: "Manhã", gradeOrder: 6 }], categories: [{ id: "k1", name: "Indisciplina" }],
+  },
+  "/api/analytics/dashboard": {
+    period: { kind: "term", label: "4º bimestre", start: "2026-10-01", end: "2026-12-18", previousLabel: "3º bimestre", previousStart: "2026-07-20", previousEnd: "2026-09-30", yearId: "y1", term: 4 },
+    enrolled: 32, enrolledPrevious: 31, occurrences: 7, occurrencesPrevious: 5, studentsWithOccurrence: 4, studentsWithOccurrencePrevious: 3,
+    status: { registered: 2, followUp: 2, concluded: 3 }, notifications: { sent: 3, pending: 0, failed: 1 },
+    weekly: [{ week: "Sem 1", current: 3, previous: 2 }, { week: "Sem 2", current: 4, previous: 3 }],
+    byCategory: [{ label: "Indisciplina", value: 7 }],
+    byClassroom: [{ classroomId: "c1", classroom: "6º A Manhã", shift: "Manhã", enrolled: 32, occurrences: 7, ratePer100: 21.9 }],
+    followUps: [{ id: "o1", student: "ALUNO FICTÍCIO", classroom: "6º A Manhã", category: "Indisciplina", occurredAt: "2026-11-10T13:00:00Z", status: "EmAcompanhamento", owner: "Pedagogia" }],
+    method: "Contam as ocorrências registradas…",
+  },
+};
+
 describe("App da escola", () => {
-  it("Direção vê o dashboard pedagógico", async () => {
-    signedInAs(["DIRETOR"]);
+  it("Direção vê o dashboard pedagógico com os indicadores da API", async () => {
+    signedInAs(["DIRETOR"], analytics);
     renderAt("/");
 
     expect(await screen.findByText("Alunos matriculados")).toBeInTheDocument();
     expect(screen.getByText("Comparação entre turmas")).toBeInTheDocument();
-    expect(screen.getByText(/Dados fictícios/)).toBeInTheDocument();
+    expect(screen.getByText("ALUNO FICTÍCIO")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /exportar/i })).toBeInTheDocument();
+    expect(screen.queryByText(/Dados fictícios/)).not.toBeInTheDocument();
     expect(screen.getByText("Usuários e acessos")).toBeInTheDocument();
   });
 
@@ -62,7 +83,7 @@ describe("App da escola", () => {
   });
 
   it("o painel nunca exibe dados dos módulos protegidos", async () => {
-    signedInAs(["DIRETOR"]);
+    signedInAs(["DIRETOR"], analytics);
     renderAt("/");
     await screen.findByText("Alunos matriculados");
 
@@ -86,11 +107,10 @@ describe("App da escola", () => {
     expect([...options].map((o) => o.textContent)).toEqual(["Professor(a)", "Consulta"]);
   });
 
-  it("rotas ainda não implementadas mostram o item do backlog", async () => {
+  it("endereço inexistente mostra página não encontrada", async () => {
     signedInAs(["DIRETOR"]);
-    renderAt("/relatorios");
+    renderAt("/rota-que-nao-existe");
 
-    expect(await screen.findByText("Em construção")).toBeInTheDocument();
-    expect(screen.getByText("Backlog F6-04")).toBeInTheDocument();
+    expect(await screen.findByText("Página não encontrada")).toBeInTheDocument();
   });
 });

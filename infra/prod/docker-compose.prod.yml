@@ -1,0 +1,111 @@
+# Sinedu — homologação/produção numa VPS (ver .doc/operacao/guia-de-operacao.md).
+# Segredos vêm do arquivo .env (fora do Git; modelo em .env.example). Nada de senha aqui.
+#   docker compose -f infra/prod/docker-compose.prod.yml --env-file infra/prod/.env up -d
+name: sinedu
+
+x-api-env: &api-env
+  Sinedu__BaseDomain: ${SINEDU_DOMAIN}
+  Sinedu__AccountUrl: https://conta.${SINEDU_DOMAIN}
+  Sinedu__PanelUrl: https://painel.${SINEDU_DOMAIN}
+  Sinedu__TenantUrlTemplate: https://{slug}.${SINEDU_DOMAIN}
+  Sinedu__SecureCookies: "true"
+  Sinedu__TrustedProxyNetwork: ${DOCKER_NETWORK_CIDR}
+  Vault__Address: http://vault:8200
+  Storage__ServiceUrl: http://storage:8333
+  Storage__AccessKey: ${S3_ACCESS_KEY}
+  Storage__SecretKey: ${S3_SECRET_KEY}
+  Smtp__Host: ${SMTP_HOST}
+  Smtp__Port: ${SMTP_PORT}
+  Smtp__Username: ${SMTP_USERNAME}
+  Smtp__Password: ${SMTP_PASSWORD}
+  Smtp__FromAddress: ${SMTP_FROM}
+
+services:
+  caddy:
+    image: sinedu/caddy:${SINEDU_VERSION}
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    environment:
+      SINEDU_DOMAIN: ${SINEDU_DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL}
+      DNS_PROVIDER: ${DNS_PROVIDER}
+      DNS_API_TOKEN: ${DNS_API_TOKEN}
+    volumes: [caddy-data:/data, caddy-config:/config]
+    depends_on: [platform, tenant]
+
+  platform:
+    image: sinedu/platform:${SINEDU_VERSION}
+    restart: unless-stopped
+    environment:
+      <<: *api-env
+      ConnectionStrings__Platform: Host=postgres;Database=sinedu_platform;Username=sinedu_platform;Password=${PLATFORM_DB_PASSWORD}
+      TenantDatabases__AdminConnectionString: Host=postgres;Database=postgres;Username=${POSTGRES_ADMIN_USER};Password=${POSTGRES_ADMIN_PASSWORD}
+      TenantDatabases__Host: pgbouncer
+      TenantDatabases__Port: "5432"
+      Vault__Token: ${VAULT_PLATFORM_TOKEN}
+      Oidc__TenantClientSecret: ${OIDC_TENANT_CLIENT_SECRET}
+      Oidc__PanelClientSecret: ${OIDC_PANEL_CLIENT_SECRET}
+      Oidc__SigningCertificatePath: /run/secrets/oidc-signing.pfx
+      Oidc__EncryptionCertificatePath: /run/secrets/oidc-encryption.pfx
+      Oidc__CertificatePassword: ${OIDC_CERTIFICATE_PASSWORD}
+    secrets: [oidc-signing.pfx, oidc-encryption.pfx]
+    depends_on: [postgres, vault, storage]
+
+  tenant:
+    image: sinedu/tenant:${SINEDU_VERSION}
+    restart: unless-stopped
+    environment:
+      <<: *api-env
+      ConnectionStrings__PlatformRegistry: Host=postgres;Database=sinedu_platform;Username=sinedu_registry_reader;Password=${REGISTRY_READER_PASSWORD}
+      Vault__Token: ${VAULT_TENANT_TOKEN}
+      Oidc__TenantClientSecret: ${OIDC_TENANT_CLIENT_SECRET}
+    depends_on: [postgres, pgbouncer, vault, storage, platform]
+
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_ADMIN_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD}
+    volumes: [postgres-data:/var/lib/postgresql/data]
+
+  pgbouncer:
+    image: edoburu/pgbouncer:v1.24.1-p1
+    restart: unless-stopped
+    environment:
+      DB_HOST: postgres
+      AUTH_TYPE: scram-sha-256
+      AUTH_USER: pgbouncer_auth
+      AUTH_QUERY: SELECT usename, passwd FROM public.pgbouncer_lookup($$1)
+      DB_USER: pgbouncer_auth
+      DB_PASSWORD: ${PGBOUNCER_AUTH_PASSWORD}
+      POOL_MODE: transaction
+    depends_on: [postgres]
+
+  vault:
+    image: hashicorp/vault:1.20
+    restart: unless-stopped
+    cap_add: [IPC_LOCK]
+    command: server
+    environment:
+      VAULT_LOCAL_CONFIG: '{"storage":{"file":{"path":"/vault/file"}},"listener":{"tcp":{"address":"0.0.0.0:8200","tls_disable":true}},"ui":false,"disable_mlock":false}'
+    volumes: [vault-data:/vault/file]
+
+  storage:
+    image: chrislusf/seaweedfs:3.99
+    restart: unless-stopped
+    command: server -s3 -s3.config=/etc/seaweedfs/s3.json -dir=/data
+    volumes: [storage-data:/data, ./s3.json:/etc/seaweedfs/s3.json:ro]
+
+secrets:
+  oidc-signing.pfx:
+    file: ./secrets/oidc-signing.pfx
+  oidc-encryption.pfx:
+    file: ./secrets/oidc-encryption.pfx
+
+volumes:
+  caddy-data:
+  caddy-config:
+  postgres-data:
+  vault-data:
+  storage-data:

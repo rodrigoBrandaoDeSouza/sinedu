@@ -45,7 +45,15 @@ public interface IStudentRegistry
     Task<EnrollmentRef?> GetEnrollmentOnAsync(Guid studentId, DateOnly date, CancellationToken ct = default);
 
     Task<IReadOnlyList<GuardianContact>> GetContactsAsync(Guid studentId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Denominador dos indicadores: alunos com matrícula (não cancelada) na turma em algum dia do período.
+    /// Quem trocou de turma no período conta nas duas turmas e uma vez no total da escola.
+    /// </summary>
+    Task<EnrollmentCounts> CountEnrolledAsync(DateOnly start, DateOnly end, IReadOnlyCollection<Guid> classroomIds, CancellationToken ct = default);
 }
+
+public sealed record EnrollmentCounts(int DistinctStudents, IReadOnlyDictionary<Guid, int> ByClassroom);
 
 internal sealed class StudentRegistry(StudentsDbContext db, TimeProvider clock) : IStudentRegistry
 {
@@ -71,6 +79,18 @@ internal sealed class StudentRegistry(StudentsDbContext db, TimeProvider clock) 
             .OrderByDescending(g => g.IsPrimaryContact)
             .Select(g => new GuardianContact(g.GuardianId, g.Guardian!.FullName, g.Relationship, g.Guardian.Email, g.ContactAuthorized, g.ContactBasis, g.IsPrimaryContact))
             .ToListAsync(ct);
+
+    public async Task<EnrollmentCounts> CountEnrolledAsync(DateOnly start, DateOnly end, IReadOnlyCollection<Guid> classroomIds, CancellationToken ct = default)
+    {
+        var rows = await db.Enrollments.AsNoTracking()
+            .Where(e => classroomIds.Contains(e.ClassroomId) && e.Status != EnrollmentStatus.Cancelada
+                && e.StartsOn <= end && (e.EndsOn == null || e.EndsOn >= start))
+            .Select(e => new { e.StudentId, e.ClassroomId })
+            .ToListAsync(ct);
+        return new EnrollmentCounts(
+            rows.Select(r => r.StudentId).Distinct().Count(),
+            rows.GroupBy(r => r.ClassroomId).ToDictionary(g => g.Key, g => g.Select(r => r.StudentId).Distinct().Count()));
+    }
 
     public async Task<StudentApplyOutcome> ApplyAsync(StudentImport data, Guid? existingId, CancellationToken ct = default)
     {

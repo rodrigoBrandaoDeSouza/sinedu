@@ -1,6 +1,7 @@
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -55,6 +56,22 @@ public static class WebDefaults
     public static WebApplication UseSineduWebDefaults(this WebApplication app)
     {
         ArgumentNullException.ThrowIfNull(app);
+
+        // Atrás do Caddy: esquema, host e IP do cliente vêm dos cabeçalhos X-Forwarded-*, mas só da rede do proxy
+        // (Sinedu:TrustedProxyNetwork, ex.: 172.18.0.0/16). Sem isso, rate limit e auditoria veriam só o IP do proxy.
+        var trusted = app.Configuration["Sinedu:TrustedProxyNetwork"];
+        if (!string.IsNullOrWhiteSpace(trusted))
+        {
+            var options = new ForwardedHeadersOptions
+            {
+                ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost,
+                ForwardLimit = 1,
+            };
+            options.KnownIPNetworks.Clear();
+            options.KnownProxies.Clear();
+            options.KnownIPNetworks.Add(System.Net.IPNetwork.Parse(trusted));
+            app.UseForwardedHeaders(options);
+        }
 
         app.UseMiddleware<CorrelationIdMiddleware>();
         app.UseMiddleware<SecurityHeadersMiddleware>();

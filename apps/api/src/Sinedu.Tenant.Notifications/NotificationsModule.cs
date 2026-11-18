@@ -29,6 +29,7 @@ public sealed class NotificationsModule : IModule
         services.AddScoped<INotificationProvider, WhatsAppNotificationProvider>();
         services.AddScoped<NotificationService>();
         services.AddScoped<INotificationRetries, NotificationRetries>();
+        services.AddScoped<INotificationStatistics, NotificationStatistics>();
     }
 
     public void MapEndpoints(IEndpointRouteBuilder endpoints)
@@ -88,6 +89,25 @@ public sealed class NotificationsModule : IModule
 
     private static Occurrences.Actor ActorOf(ClaimsPrincipal user) =>
         new(Guid.Parse(user.FindFirstValue("sub")!), user.FindFirstValue("name") ?? user.FindFirstValue("email") ?? "Equipe");
+}
+
+public sealed record NotificationTotals(int Sent, int Pending, int Failed);
+
+/// <summary>Totais de comunicações ligadas a um conjunto de ocorrências (indicadores).</summary>
+public interface INotificationStatistics
+{
+    Task<NotificationTotals> TotalsAsync(IReadOnlyCollection<Guid> occurrenceIds, CancellationToken ct = default);
+}
+
+internal sealed class NotificationStatistics(NotificationsDbContext db) : INotificationStatistics
+{
+    public async Task<NotificationTotals> TotalsAsync(IReadOnlyCollection<Guid> occurrenceIds, CancellationToken ct = default)
+    {
+        var counts = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.ToListAsync(
+            db.Notifications.Where(n => occurrenceIds.Contains(n.OccurrenceId)).GroupBy(n => n.Status).Select(g => new { g.Key, Count = g.Count() }), ct);
+        int Of(NotificationStatus s) => counts.FirstOrDefault(c => c.Key == s)?.Count ?? 0;
+        return new NotificationTotals(Of(NotificationStatus.Enviado), Of(NotificationStatus.Pendente), Of(NotificationStatus.Falhou));
+    }
 }
 
 /// <summary>Entrada da fila de reenvio, chamada pelo worker do host para cada escola ativa.</summary>

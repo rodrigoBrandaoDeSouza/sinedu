@@ -45,7 +45,7 @@ public sealed class IdentityModule : IModule
         services.AddScoped<AccountService>();
         services.AddScoped<IAccountInvitations>(sp => sp.GetRequiredService<AccountService>());
 
-        AddOpenIddict(services, urls);
+        AddOpenIddict(services, urls, configuration);
         AddAuthentication(services, urls);
 
         services.AddAuthorizationBuilder()
@@ -78,7 +78,7 @@ public sealed class IdentityModule : IModule
         PanelSessionEndpoints.Map(endpoints);
     }
 
-    private static void AddOpenIddict(IServiceCollection services, SineduUrls urls)
+    private static void AddOpenIddict(IServiceCollection services, SineduUrls urls, IConfiguration configuration)
     {
         services.AddOpenIddict()
             .AddCore(o => o.UseEntityFrameworkCore().UseDbContext<IdentityDbContext>())
@@ -95,8 +95,23 @@ public sealed class IdentityModule : IModule
                 o.SetAccessTokenLifetime(TimeSpan.FromMinutes(10));
                 o.SetIdentityTokenLifetime(TimeSpan.FromMinutes(5));
 
-                // TODO(F6-08): certificados persistentes em produção. Chaves efêmeras bastam para dev/testes.
-                o.AddEphemeralEncryptionKey().AddEphemeralSigningKey();
+                // Produção: certificados persistentes (reiniciar não invalida tokens em trânsito). Dev/testes: chaves efêmeras.
+                var signing = configuration["Oidc:SigningCertificatePath"];
+                var encryption = configuration["Oidc:EncryptionCertificatePath"];
+                if (!string.IsNullOrWhiteSpace(signing) && !string.IsNullOrWhiteSpace(encryption))
+                {
+                    var password = configuration["Oidc:CertificatePassword"];
+                    o.AddSigningCertificate(System.Security.Cryptography.X509Certificates.X509CertificateLoader.LoadPkcs12FromFile(signing, password));
+                    o.AddEncryptionCertificate(System.Security.Cryptography.X509Certificates.X509CertificateLoader.LoadPkcs12FromFile(encryption, password));
+                }
+                else if (urls.SecureCookies)
+                {
+                    throw new InvalidOperationException("Oidc:SigningCertificatePath e Oidc:EncryptionCertificatePath são obrigatórios fora do ambiente local.");
+                }
+                else
+                {
+                    o.AddEphemeralEncryptionKey().AddEphemeralSigningKey();
+                }
 
                 var aspnet = o.UseAspNetCore()
                     .EnableAuthorizationEndpointPassthrough()
