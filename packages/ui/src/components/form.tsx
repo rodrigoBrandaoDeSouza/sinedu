@@ -2,6 +2,18 @@ import { AlertTriangle, CheckCircle2, Info, XCircle } from "lucide-react";
 import { forwardRef, useId, type InputHTMLAttributes, type ReactNode, type TextareaHTMLAttributes } from "react";
 import { cn } from "../lib/cn";
 
+/**
+ * Layout comum dos campos: rótulo, controle e ajuda/erro em três linhas.
+ * Dentro de um grid (ex.: "grid sm:grid-cols-2"), o campo vira subgrid e ocupa três linhas do pai,
+ * então rótulos que quebram em duas linhas não desalinham os controles vizinhos.
+ * Fora de um grid, comporta-se como uma coluna simples.
+ */
+export const fieldLayout = "row-span-3 grid grid-rows-subgrid content-start gap-y-1.5";
+export const fieldLabel = "self-end text-sm font-medium text-foreground";
+export const fieldControl =
+  "w-full rounded-lg border border-border-strong bg-surface-raised text-sm text-foreground transition-colors placeholder:text-muted-foreground hover:border-foreground/30 disabled:cursor-not-allowed disabled:opacity-60";
+
+
 export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label: string;
   error?: string;
@@ -14,8 +26,8 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input({ l
   const describedBy = error ? `${inputId}-error` : hint ? `${inputId}-hint` : undefined;
 
   return (
-    <div className={cn("flex flex-col gap-1.5", className)}>
-      <label htmlFor={inputId} className="text-sm font-medium text-foreground">
+    <div className={cn(fieldLayout, className)}>
+      <label htmlFor={inputId} className={fieldLabel}>
         {label}
       </label>
       <input
@@ -24,7 +36,8 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input({ l
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy}
         className={cn(
-          "h-10 w-full rounded-lg border border-border-strong bg-surface-raised px-3 text-sm text-foreground transition-colors placeholder:text-muted-foreground hover:border-foreground/30",
+          fieldControl,
+          "h-10 px-3",
           error && "border-critical",
         )}
         {...props}
@@ -48,24 +61,28 @@ export interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElemen
   hint?: ReactNode;
 }
 
-export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function Textarea({ label, error, hint, className, id, rows = 3, ...props }, ref) {
+export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function Textarea({ label, error, hint, className, id, rows = 3, style, ...props }, ref) {
   const generated = useId();
   const inputId = id ?? generated;
   const describedBy = error ? `${inputId}-error` : hint ? `${inputId}-hint` : undefined;
 
   return (
-    <div className={cn("flex flex-col gap-1.5", className)}>
-      <label htmlFor={inputId} className="text-sm font-medium text-foreground">
+    <div className={cn(fieldLayout, className)}>
+      <label htmlFor={inputId} className={fieldLabel}>
         {label}
       </label>
       <textarea
         ref={ref}
         id={inputId}
         rows={rows}
+        // Em grid, a altura natural do <textarea> pode ser comprimida a zero: a altura mínima garante as linhas pedidas
+        // (linha de 1.25rem do text-sm + padding vertical + borda).
+        style={{ minHeight: `calc(${rows} * 1.25rem + 1rem + 2px)`, ...style }}
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy}
         className={cn(
-          "w-full rounded-lg border border-border-strong bg-surface-raised px-3 py-2 text-sm text-foreground transition-colors placeholder:text-muted-foreground hover:border-foreground/30",
+          fieldControl,
+          "px-3 py-2",
           error && "border-critical",
         )}
         {...props}

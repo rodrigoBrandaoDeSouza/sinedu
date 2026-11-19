@@ -13,6 +13,7 @@ import { OccurrenceFormPage } from "./pages/occurrences/occurrence-form-page";
 import { OccurrencePage } from "./pages/occurrences/occurrence-page";
 import { OccurrencesPage } from "./pages/occurrences/occurrences-page";
 import { HealthImportRoute, PendingRoute } from "./pages/protected/lazy-routes";
+import { SettingsPage } from "./pages/settings-page";
 import { StaffPage } from "./pages/staff-page";
 import { StudentPage } from "./pages/student-page";
 import { StudentsPage } from "./pages/students-page";
@@ -40,6 +41,7 @@ export const routes: RouteObject[] = [
       { path: "relatorios", element: <ReportsPage /> },
       { path: "usuarios", element: <UsersPage /> },
       { path: "administracao", element: <AdminPage /> },
+      { path: "configuracoes", element: <SettingsPage /> },
       { path: "*", element: <NotFoundPage /> },
     ],
   },

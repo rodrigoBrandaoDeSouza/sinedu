@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "@sinedu/ui";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { routes } from "../routes";
@@ -84,8 +84,19 @@ describe("Painel da plataforma", () => {
     ]);
     renderAt("/teste-email");
 
-    expect(await screen.findByRole("option", { name: "SMTP padrão da plataforma" })).toBeInTheDocument();
-    expect(await screen.findByRole("option", { name: "Colégio Estadual Demonstração (escola-demo)" })).toBeInTheDocument();
+    const enviarPor = await screen.findByRole("combobox", { name: "Enviar por" });
+    expect(enviarPor).toHaveTextContent("SMTP padrão da plataforma");
+    fireEvent.click(enviarPor);
+    expect(enviarPor).toHaveAttribute("aria-expanded", "true");
+    fireEvent.click(await screen.findByRole("option", { name: "Colégio Estadual Demonstração (escola-demo)" }));
+    expect(enviarPor).toHaveTextContent("Colégio Estadual Demonstração (escola-demo)");
+    expect(enviarPor).toHaveAttribute("aria-expanded", "false");
+
+    // Teclado: seta abre, seta move, Enter escolhe.
+    fireEvent.keyDown(enviarPor, { key: "ArrowDown" });
+    fireEvent.keyDown(enviarPor, { key: "ArrowUp" });
+    fireEvent.keyDown(enviarPor, { key: "Enter" });
+    expect(enviarPor).toHaveTextContent("SMTP padrão da plataforma");
     expect(screen.getByRole("button", { name: /enviar e-mail de teste/i })).toBeDisabled();
   });
 

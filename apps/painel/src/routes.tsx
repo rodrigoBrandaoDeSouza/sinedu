@@ -4,6 +4,7 @@ import { ComingSoonPage } from "./pages/coming-soon-page";
 import { AccountsPage } from "./pages/accounts-page";
 import { EmailTestPage } from "./pages/email-test-page";
 import { OverviewPage } from "./pages/overview-page";
+import { SettingsPage } from "./pages/settings-page";
 import { TenantsPage } from "./pages/tenants-page";
 
 const soon = (path: string, title: string, description: string, backlog: string): RouteObject => ({
@@ -24,7 +25,7 @@ export const routes: RouteObject[] = [
       soon("auditoria", "Auditoria", "Ações realizadas no painel da plataforma.", "F1-09"),
       { path: "contas", element: <AccountsPage /> },
       { path: "teste-email", element: <EmailTestPage /> },
-      soon("configuracoes", "Configurações", "Planos, subdomínios reservados e parâmetros da plataforma.", "P-06"),
+      { path: "configuracoes", element: <SettingsPage /> },
       soon("*", "Página não encontrada", "O endereço acessado não existe.", "—"),
     ],
   },

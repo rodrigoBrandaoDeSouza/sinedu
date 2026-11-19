@@ -22,17 +22,18 @@
   --border-strong: rgba(11, 11, 11, 0.16);
 
   /* Marca */
-  --primary: #4338ca;
-  --primary-hover: #3730a3;
+  /* Marca: derivada da cor base escolhida pelo usuário (data-accent, blocos abaixo) */
+  --primary: var(--a-700);
+  --primary-hover: var(--a-800);
   --primary-foreground: #ffffff;
-  --primary-soft: #eef0ff;
-  --primary-soft-foreground: #3730a3;
-  --ring: rgba(67, 56, 202, 0.45);
+  --primary-soft: var(--a-50);
+  --primary-soft-foreground: var(--a-800);
+  --ring: color-mix(in srgb, var(--a-700) 45%, transparent);
 
   /* Navegação lateral */
   --sidebar: #fbfbf9;
-  --sidebar-active: #eef0ff;
-  --sidebar-active-foreground: #3730a3;
+  --sidebar-active: var(--primary-soft);
+  --sidebar-active-foreground: var(--primary-soft-foreground);
 
   /* Gráficos (paleta validada — skill dataviz) */
   --chart-grid: #e1e0d9;
@@ -73,15 +74,15 @@
     --muted-foreground: #98968f;
     --border: rgba(255, 255, 255, 0.08);
     --border-strong: rgba(255, 255, 255, 0.16);
-    --primary: #818cf8;
-    --primary-hover: #a5b4fc;
+    --primary: var(--a-400);
+    --primary-hover: var(--a-300);
     --primary-foreground: #0d0d0d;
-    --primary-soft: rgba(129, 140, 248, 0.14);
-    --primary-soft-foreground: #c7cdff;
-    --ring: rgba(129, 140, 248, 0.5);
+    --primary-soft: color-mix(in srgb, var(--a-400) 14%, transparent);
+    --primary-soft-foreground: var(--a-200);
+    --ring: color-mix(in srgb, var(--a-400) 50%, transparent);
     --sidebar: #121211;
-    --sidebar-active: rgba(129, 140, 248, 0.14);
-    --sidebar-active-foreground: #c7cdff;
+    --sidebar-active: var(--primary-soft);
+    --sidebar-active-foreground: var(--primary-soft-foreground);
     --chart-grid: #2c2c2a;
     --chart-axis: #383835;
     --chart-muted: #898781;
@@ -113,15 +114,15 @@
   --muted-foreground: #98968f;
   --border: rgba(255, 255, 255, 0.08);
   --border-strong: rgba(255, 255, 255, 0.16);
-  --primary: #818cf8;
-  --primary-hover: #a5b4fc;
+  --primary: var(--a-400);
+  --primary-hover: var(--a-300);
   --primary-foreground: #0d0d0d;
-  --primary-soft: rgba(129, 140, 248, 0.14);
-  --primary-soft-foreground: #c7cdff;
-  --ring: rgba(129, 140, 248, 0.5);
+  --primary-soft: color-mix(in srgb, var(--a-400) 14%, transparent);
+  --primary-soft-foreground: var(--a-200);
+  --ring: color-mix(in srgb, var(--a-400) 50%, transparent);
   --sidebar: #121211;
-  --sidebar-active: rgba(129, 140, 248, 0.14);
-  --sidebar-active-foreground: #c7cdff;
+  --sidebar-active: var(--primary-soft);
+  --sidebar-active-foreground: var(--primary-soft-foreground);
   --chart-grid: #2c2c2a;
   --chart-axis: #383835;
   --chart-muted: #898781;
@@ -139,6 +140,77 @@
   --status-info-soft: rgba(57, 135, 229, 0.16);
   --shadow-card: 0 0 0 1px rgba(255, 255, 255, 0.02);
   --shadow-pop: 0 10px 30px -10px rgba(0, 0, 0, 0.7);
+}
+
+/*
+ * Cor base (escolha do usuário em Configurações → Aparência). Só muda a marca:
+ * gráficos (--series-*) e estados (good/warning/critical) nunca seguem a cor base.
+ * Contraste: texto branco sobre o tom 700 e texto escuro sobre o tom 400 (AA nos dois temas).
+ */
+:root,
+[data-accent="indigo"] {
+  --a-50: #eef0ff;
+  --a-200: #c7cdff;
+  --a-300: #a5b4fc;
+  --a-400: #818cf8;
+  --a-700: #4338ca;
+  --a-800: #3730a3;
+}
+[data-accent="azul"] {
+  --a-50: #eff6ff;
+  --a-200: #bfdbfe;
+  --a-300: #93c5fd;
+  --a-400: #60a5fa;
+  --a-700: #1d4ed8;
+  --a-800: #1e40af;
+}
+[data-accent="petroleo"] {
+  --a-50: #f0fdfa;
+  --a-200: #99f6e4;
+  --a-300: #5eead4;
+  --a-400: #2dd4bf;
+  --a-700: #0f766e;
+  --a-800: #115e59;
+}
+[data-accent="verde"] {
+  --a-50: #ecfdf5;
+  --a-200: #a7f3d0;
+  --a-300: #6ee7b7;
+  --a-400: #34d399;
+  --a-700: #047857;
+  --a-800: #065f46;
+}
+[data-accent="violeta"] {
+  --a-50: #f5f3ff;
+  --a-200: #ddd6fe;
+  --a-300: #c4b5fd;
+  --a-400: #a78bfa;
+  --a-700: #6d28d9;
+  --a-800: #5b21b6;
+}
+[data-accent="magenta"] {
+  --a-50: #fdf4ff;
+  --a-200: #f5d0fe;
+  --a-300: #f0abfc;
+  --a-400: #e879f9;
+  --a-700: #a21caf;
+  --a-800: #86198f;
+}
+[data-accent="grafite"] {
+  --a-50: #f1f5f9;
+  --a-200: #e2e8f0;
+  --a-300: #cbd5e1;
+  --a-400: #94a3b8;
+  --a-700: #334155;
+  --a-800: #1e293b;
+}
+
+/* Amostra no seletor de cor: cada amostra carrega o próprio data-accent. */
+.accent-swatch {
+  background: var(--a-700);
+}
+:root[data-theme="dark"] .accent-swatch {
+  background: var(--a-400);
 }
 
 @theme inline {
@@ -197,6 +269,13 @@
   ::before,
   ::after {
     border-color: var(--border);
+  }
+
+  input[type="checkbox"],
+  input[type="radio"] {
+    accent-color: var(--primary);
+    width: 1rem;
+    height: 1rem;
   }
 
   :focus-visible {

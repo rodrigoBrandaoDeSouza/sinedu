@@ -57,7 +57,7 @@ describe("Importação", () => {
     renderAt("/importacoes/b1");
 
     expect(await screen.findByText("Ligue as colunas da planilha aos campos do Sinedu")).toBeInTheDocument();
-    expect(await screen.findByDisplayValue("Coluna 2 (sem título)")).toBeInTheDocument();
+    expect((await screen.findAllByText("Coluna 2 (sem título)", { selector: "[role=combobox] span" })).length).toBeGreaterThan(0);
     expect(screen.getByText("Ex.: LÍVIA FREITAS COSTA")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /validar e ver prévia/i })).toBeEnabled();
   });

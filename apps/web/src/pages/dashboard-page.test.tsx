@@ -103,7 +103,8 @@ describe("App da escola", () => {
     renderAt("/usuarios");
 
     (await screen.findByRole("button", { name: /convidar pessoa/i })).click();
-    const options = (await screen.findByLabelText("Papel")).querySelectorAll("option");
+    const papel = await screen.findByLabelText("Papel");
+    const options = document.getElementById(papel.getAttribute("aria-controls")!)!.querySelectorAll("[role=option]");
     expect([...options].map((o) => o.textContent)).toEqual(["Professor(a)", "Consulta"]);
   });
 

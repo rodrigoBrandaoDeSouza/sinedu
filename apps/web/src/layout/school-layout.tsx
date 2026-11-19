@@ -12,6 +12,7 @@ import {
   LogOut,
   Mail,
   Settings,
+  SlidersHorizontal,
   Upload,
   Users,
   UsersRound,
@@ -78,17 +79,18 @@ function SchoolShell() {
           },
         ]
       : []),
-    ...(config
-      ? [
-          {
-            title: "Configuração",
-            items: [
+    {
+      title: "Configuração",
+      items: [
+        ...(config
+          ? [
               { to: "/usuarios", label: "Usuários e acessos", icon: Users },
               { to: "/administracao", label: "Administração", icon: Settings },
-            ],
-          },
-        ]
-      : []),
+            ]
+          : []),
+        { to: "/configuracoes", label: "Configurações", icon: SlidersHorizontal },
+      ],
+    },
   ];
 
   const initials = me.user.name

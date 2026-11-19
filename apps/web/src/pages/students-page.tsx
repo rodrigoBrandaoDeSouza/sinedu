@@ -46,7 +46,7 @@ export function StudentsPage() {
             onChange={(e) => update({ q: e.target.value || null, pagina: null })}
             placeholder="Buscar por nome ou CGM"
             autoComplete="off"
-            className="h-9 w-full rounded-lg border border-border-strong bg-surface-raised pl-9 pr-3 text-sm placeholder:text-muted-foreground"
+            className="h-10 w-full rounded-lg border border-border-strong bg-surface-raised pl-9 pr-3 text-sm placeholder:text-muted-foreground transition-colors hover:border-foreground/30"
           />
         </label>
         <Select
