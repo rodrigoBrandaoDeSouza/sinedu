@@ -76,6 +76,23 @@ describe("Cadastros", () => {
     expect(screen.getByText("427.492.549-94")).toBeInTheDocument();
     expect(screen.getByText("Autorização não registrada")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /editar cadastro/i })).toBeInTheDocument();
+    // F2-06: Direção cadastra, edita e desvincula responsáveis.
+    expect(screen.getByRole("button", { name: /adicionar/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Desvincular JOÃO CARVALHO REIS" })).toBeInTheDocument();
+  });
+
+  it("Professor vê responsáveis, mas não os altera", async () => {
+    signedInAs(["PROFESSOR"], {
+      "/api/students/st1": {
+        ...baseStudent,
+        guardians: [{ id: "g1", name: "JOÃO CARVALHO REIS", relationship: "Pai", isPrimaryContact: true, contactAuthorized: true, phone: "(00) 91234-5678", email: null }],
+      },
+    });
+    renderAt("/alunos/st1");
+
+    expect(await screen.findByText("JOÃO CARVALHO REIS")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /adicionar/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /desvincular/i })).not.toBeInTheDocument();
   });
 
   it("perfil Consulta não vê responsáveis nem endereço (campos ausentes na API)", async () => {

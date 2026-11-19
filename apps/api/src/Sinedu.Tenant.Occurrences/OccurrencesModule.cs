@@ -72,6 +72,7 @@ public sealed class OccurrencesModule : IModule
             if (category is null) return Results.NotFound();
             var name = body.Name?.Trim() ?? "";
             if (name.Length is < 2 or > 80) return Results.ValidationProblem(new Dictionary<string, string[]> { ["name"] = ["Use de 2 a 80 caracteres."] });
+            if (await db.Categories.AnyAsync(c => c.Id != id && c.Name == name, ct)) return Results.ValidationProblem(new Dictionary<string, string[]> { ["name"] = ["Já existe uma categoria com este nome."] });
             category.Name = name;
             category.IsActive = body.IsActive;
             await db.SaveChangesAsync(ct);

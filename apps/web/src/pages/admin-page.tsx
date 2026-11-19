@@ -15,7 +15,7 @@ interface Profile {
 export function AdminPage() {
   return (
     <>
-      <PageHeader title="Administração" description="Dados da escola e calendário letivo. Categorias de ocorrência e modelos de e-mail chegam com a Fase 5." />
+      <PageHeader title="Administração" description="Dados da escola e calendário letivo. A Direção ajusta as categorias de ocorrência em Ocorrências → Categorias e os modelos de e-mail em Comunicações." />
       <div className="grid gap-4 xl:grid-cols-5">
         <div className="xl:col-span-3">
           <YearsCard />

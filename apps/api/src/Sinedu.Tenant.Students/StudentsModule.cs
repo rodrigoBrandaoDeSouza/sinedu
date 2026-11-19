@@ -34,6 +34,9 @@ public sealed class StudentsModule : IModule
         api.MapPut("/{id:guid}", UpdateAsync).RequireAuthorization(Policies.PedagogicalStaff);
         api.MapPost("/{id:guid}/move", MoveAsync).RequireAuthorization(Policies.PedagogicalStaff);
         api.MapPut("/{id:guid}/guardians/{guardianId:guid}/contact", UpdateContactAsync).RequireAuthorization(Policies.PedagogicalStaff);
+        api.MapPost("/{id:guid}/guardians", AddGuardianAsync).RequireAuthorization(Policies.PedagogicalStaff);
+        api.MapPut("/{id:guid}/guardians/{guardianId:guid}", UpdateGuardianAsync).RequireAuthorization(Policies.PedagogicalStaff);
+        api.MapDelete("/{id:guid}/guardians/{guardianId:guid}", UnlinkGuardianAsync).RequireAuthorization(Policies.PedagogicalStaff);
 
         // Contagem por turma: número agregado, sem dados pessoais (Admin técnico também vê a estrutura).
         api.MapGet("/classroom-counts", async (StudentsDbContext db, IViewerScopeProvider scopes, CancellationToken ct) =>
@@ -286,6 +289,87 @@ public sealed class StudentsModule : IModule
         return Results.NoContent();
     }
 
+    /// <summary>
+    /// Novo responsável cadastrado na escola (F2-06). Sempre uma pessoa nova: nunca mescla com outro cadastro só pelo nome.
+    /// Autorizar contato exige o fundamento, como na edição de contato.
+    /// </summary>
+    private static async Task<IResult> AddGuardianAsync(
+        Guid id, AddGuardianRequest body, ClaimsPrincipal user, StudentsDbContext db, IAuditLog audit, TimeProvider clock, CancellationToken ct)
+    {
+        if (!await db.Students.AnyAsync(s => s.Id == id, ct)) return Results.NotFound();
+
+        var errors = ValidateGuardian(body.FullName, body.Relationship);
+        var email = string.IsNullOrWhiteSpace(body.Email) ? null : body.Email.Trim().ToLowerInvariant();
+        if (email is not null && (email.Length > 200 || !System.Net.Mail.MailAddress.TryCreate(email, out _))) errors["email"] = ["Informe um e-mail válido."];
+        var phone = string.IsNullOrWhiteSpace(body.Phone) ? null : body.Phone.Trim();
+        if (phone?.Length > 30) errors["phone"] = ["Use no máximo 30 caracteres."];
+        var basis = string.IsNullOrWhiteSpace(body.ContactBasis) ? null : body.ContactBasis.Trim();
+        if (body.ContactAuthorized && (basis is null || basis.Length < 5)) errors["contactBasis"] = ["Informe o fundamento da autorização (ex.: termo assinado na matrícula)."];
+        if (basis?.Length > 300) errors["contactBasis"] = ["Use no máximo 300 caracteres."];
+        if (errors.Count > 0) return Results.ValidationProblem(errors);
+
+        var guardian = new Guardian { Id = Guid.CreateVersion7(), FullName = body.FullName.Trim(), Phone = phone, Email = email, Source = DataSource.Manual };
+        var now = clock.GetUtcNow();
+        if (body.IsPrimaryContact)
+        {
+            await db.StudentGuardians.Where(g => g.StudentId == id).ExecuteUpdateAsync(s => s.SetProperty(g => g.IsPrimaryContact, false), ct);
+        }
+
+        db.Guardians.Add(guardian);
+        db.StudentGuardians.Add(new StudentGuardian
+        {
+            StudentId = id,
+            GuardianId = guardian.Id,
+            Relationship = body.Relationship!.Value,
+            IsPrimaryContact = body.IsPrimaryContact,
+            ContactAuthorized = body.ContactAuthorized,
+            ContactBasis = body.ContactAuthorized ? basis : null,
+            ContactAuthorizedAt = body.ContactAuthorized ? now : null,
+            ContactAuthorizedBy = body.ContactAuthorized ? Guid.Parse(user.FindFirstValue("sub")!) : null,
+        });
+        await db.SaveChangesAsync(ct);
+        await audit.WriteAsync(new AuditEntry("guardian_added", ResourceType: "guardian", ResourceId: guardian.Id.ToString(), StudentId: id), ct);
+        return Results.Created($"/api/students/{id}/guardians/{guardian.Id}", new { guardian.Id });
+    }
+
+    /// <summary>Corrige nome e parentesco. O nome vale para todos os alunos ligados à mesma pessoa (irmãos).</summary>
+    private static async Task<IResult> UpdateGuardianAsync(
+        Guid id, Guid guardianId, UpdateGuardianRequest body, StudentsDbContext db, IAuditLog audit, CancellationToken ct)
+    {
+        var link = await db.StudentGuardians.Include(g => g.Guardian).FirstOrDefaultAsync(g => g.StudentId == id && g.GuardianId == guardianId, ct);
+        if (link is null) return Results.NotFound();
+
+        var errors = ValidateGuardian(body.FullName, body.Relationship);
+        if (errors.Count > 0) return Results.ValidationProblem(errors);
+
+        link.Guardian!.FullName = body.FullName.Trim();
+        link.Relationship = body.Relationship!.Value;
+        await db.SaveChangesAsync(ct);
+        await audit.WriteAsync(new AuditEntry("guardian_updated", ResourceType: "guardian", ResourceId: guardianId.ToString(), StudentId: id), ct);
+        return Results.NoContent();
+    }
+
+    /// <summary>
+    /// Desfaz o vínculo com este aluno. O cadastro da pessoa continua (pode ser responsável por irmãos e aparece no
+    /// histórico de comunicações já enviadas).
+    /// </summary>
+    private static async Task<IResult> UnlinkGuardianAsync(Guid id, Guid guardianId, StudentsDbContext db, IAuditLog audit, CancellationToken ct)
+    {
+        var removed = await db.StudentGuardians.Where(g => g.StudentId == id && g.GuardianId == guardianId).ExecuteDeleteAsync(ct);
+        if (removed == 0) return Results.NotFound();
+        await audit.WriteAsync(new AuditEntry("guardian_unlinked", ResourceType: "guardian", ResourceId: guardianId.ToString(), StudentId: id), ct);
+        return Results.NoContent();
+    }
+
+    private static Dictionary<string, string[]> ValidateGuardian(string? fullName, GuardianRelationship? relationship)
+    {
+        var errors = new Dictionary<string, string[]>();
+        if (string.IsNullOrWhiteSpace(fullName) || fullName.Trim().Length < 3) errors["fullName"] = ["Informe o nome completo."];
+        else if (fullName.Trim().Length > 200) errors["fullName"] = ["Use no máximo 200 caracteres."];
+        if (relationship is null || !Enum.IsDefined(relationship.Value)) errors["relationship"] = ["Escolha o parentesco."];
+        return errors;
+    }
+
     /// <summary>Remanejamento/transferência interna: encerra a matrícula ativa e abre outra (histórico preservado).</summary>
     private static async Task<IResult> MoveAsync(
         Guid id, MoveRequest body, StudentsDbContext db, IClassroomDirectory classrooms, IAuditLog audit, TimeProvider clock, CancellationToken ct)
@@ -366,5 +450,10 @@ public sealed record UpdateStudentRequest(
     string FullName, string? SocialName, DateOnly? BirthDate, string? InstitutionalCode, string? InstitutionalEmail, string? Address);
 
 public sealed record MoveRequest(Guid ClassroomId, int? CallNumber);
+
+public sealed record AddGuardianRequest(
+    string FullName, GuardianRelationship? Relationship, string? Phone, string? Email, bool IsPrimaryContact, bool ContactAuthorized, string? ContactBasis);
+
+public sealed record UpdateGuardianRequest(string FullName, GuardianRelationship? Relationship);
 
 public sealed record UpdateContactRequest(string? Email, string? Phone, bool IsPrimaryContact, bool ContactAuthorized, string? ContactBasis);

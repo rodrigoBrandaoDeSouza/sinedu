@@ -167,3 +167,21 @@ export function formatDate(value: string | null | undefined) {
   const [y, m, d] = value.split("-");
   return `${d}/${m}/${y}`;
 }
+
+/** Responsáveis (F2-06): só Direção e Pedagogia. Cadastro manual é sempre uma pessoa nova (nunca mescla por nome). */
+export interface GuardianInput {
+  fullName: string;
+  relationship: Relationship;
+  phone: string | null;
+  email: string | null;
+  isPrimaryContact: boolean;
+  contactAuthorized: boolean;
+  contactBasis: string | null;
+}
+
+export const guardiansApi = {
+  add: (studentId: string, body: GuardianInput) => api.post<{ id: string }>(`/api/students/${studentId}/guardians`, body),
+  update: (studentId: string, guardianId: string, body: { fullName: string; relationship: Relationship }) =>
+    api.put(`/api/students/${studentId}/guardians/${guardianId}`, body),
+  unlink: (studentId: string, guardianId: string) => api.delete(`/api/students/${studentId}/guardians/${guardianId}`),
+};

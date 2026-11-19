@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Alert, api, ApiError, Badge, Button, Card, CardBody, CardHeader, Dialog, Input } from "@sinedu/ui";
-import { ArrowLeft, Cake, Hash, Home, Lock, Mail, Pencil, Phone, ShieldCheck, UserRound } from "lucide-react";
+import { Alert, api, ApiError, Badge, Button, Card, CardBody, CardHeader, Dialog, Input, Select } from "@sinedu/ui";
+import { ArrowLeft, Cake, Hash, Home, Lock, Mail, Pencil, Phone, ShieldCheck, Unlink, UserPlus, UserRound } from "lucide-react";
 import { lazy, Suspense, useState, type FormEvent, type ReactNode } from "react";
 import { Link, useParams, useSearchParams } from "react-router";
 import { useHasRole } from "../lib/session";
@@ -12,7 +12,7 @@ import { errorsOf } from "./protected/utils";
 const ProtectedPanel = lazy(() => import("./protected/protected-panel"));
 
 type Tab = "cadastro" | "saude" | "protecao";
-import { enrollmentLabels, formatDate, initials, relationshipLabels, schoolApi, type StudentDetails } from "../lib/school-api";
+import { enrollmentLabels, formatDate, guardiansApi, initials, relationshipLabels, schoolApi, type GuardianInput, type Relationship, type StudentDetails } from "../lib/school-api";
 
 /** Painel do aluno. Abas de Saúde e Proteção/Sigilo existem só para Direção e Pedagogia. */
 export function StudentPage() {
@@ -149,12 +149,31 @@ export function StudentPage() {
   );
 }
 
+type GuardianRow = NonNullable<StudentDetails["guardians"]>[number];
+
 function GuardiansCard({ studentId, canEdit, guardians }: { studentId: string; canEdit: boolean; guardians: NonNullable<StudentDetails["guardians"]> }) {
-  const [editing, setEditing] = useState<NonNullable<StudentDetails["guardians"]>[number]>();
+  const client = useQueryClient();
+  const [editing, setEditing] = useState<GuardianRow | "new">();
+  const unlink = useMutation({
+    mutationFn: (g: GuardianRow) => guardiansApi.unlink(studentId, g.id),
+    onSuccess: () => client.invalidateQueries({ queryKey: ["student", studentId] }),
+  });
+
   return (
     <Card>
-      <CardHeader title="Responsáveis" description="Comunicações só para quem tem autorização de contato registrada." />
+      <CardHeader
+        title="Responsáveis"
+        description="Comunicações só para quem tem autorização de contato registrada."
+        actions={
+          canEdit ? (
+            <Button size="sm" onClick={() => setEditing("new")}>
+              <UserPlus /> Adicionar
+            </Button>
+          ) : null
+        }
+      />
       <CardBody className="space-y-3">
+        {unlink.error ? <Alert tone="critical" title={unlink.error instanceof ApiError ? unlink.error.message : "Não foi possível desvincular."} /> : null}
         {guardians.length === 0 ? <p className="text-sm text-muted-foreground">Nenhum responsável cadastrado.</p> : null}
         {guardians.map((g) => (
           <div key={g.id} className="rounded-xl border border-border p-4">
@@ -167,9 +186,23 @@ function GuardiansCard({ studentId, canEdit, guardians }: { studentId: string; c
                 {g.contactAuthorized ? "Contato autorizado" : "Autorização não registrada"}
               </Badge>
               {canEdit ? (
-                <Button size="sm" variant="ghost" className="ml-auto" onClick={() => setEditing(g)}>
-                  <Pencil /> Contato
-                </Button>
+                <span className="ml-auto flex gap-1">
+                  <Button size="sm" variant="ghost" onClick={() => setEditing(g)}>
+                    <Pencil /> Editar
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    aria-label={`Desvincular ${g.name}`}
+                    title="Desvincular deste aluno"
+                    disabled={unlink.isPending}
+                    onClick={() => {
+                      if (confirm(`Desvincular ${g.name} deste aluno? O histórico de comunicações já enviadas continua.`)) unlink.mutate(g);
+                    }}
+                  >
+                    <Unlink />
+                  </Button>
+                </span>
               ) : null}
             </div>
             <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-3">
@@ -180,18 +213,27 @@ function GuardiansCard({ studentId, canEdit, guardians }: { studentId: string; c
           </div>
         ))}
       </CardBody>
-      {editing ? <ContactDialog studentId={studentId} guardian={editing} onClose={() => setEditing(undefined)} /> : null}
+      {editing ? <GuardianDialog studentId={studentId} guardian={editing === "new" ? undefined : editing} onClose={() => setEditing(undefined)} /> : null}
     </Card>
   );
 }
 
-/** Contato e autorização de comunicação (spec 6.1): autorizar exige o fundamento; nada é presumido. */
-function ContactDialog({ studentId, guardian, onClose }: { studentId: string; guardian: NonNullable<StudentDetails["guardians"]>[number]; onClose: () => void }) {
+/**
+ * Cadastro e edição de responsável (F2-06) com contato e autorização de comunicação (spec 6.1):
+ * autorizar exige o fundamento; nada é presumido. Um cadastro novo é sempre uma pessoa nova.
+ */
+function GuardianDialog({ studentId, guardian, onClose }: { studentId: string; guardian?: GuardianRow; onClose: () => void }) {
   const client = useQueryClient();
-  const [authorized, setAuthorized] = useState(guardian.contactAuthorized);
+  const [authorized, setAuthorized] = useState(guardian?.contactAuthorized ?? false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const save = useMutation({
-    mutationFn: (body: Parameters<typeof updateGuardianContact>[2]) => updateGuardianContact(studentId, guardian.id, body),
+    mutationFn: async (body: GuardianInput) => {
+      if (!guardian) return guardiansApi.add(studentId, body);
+      if (body.fullName !== guardian.name || body.relationship !== guardian.relationship) {
+        await guardiansApi.update(studentId, guardian.id, { fullName: body.fullName, relationship: body.relationship });
+      }
+      return updateGuardianContact(studentId, guardian.id, body);
+    },
     onSuccess: () => {
       client.invalidateQueries({ queryKey: ["student", studentId] });
       onClose();
@@ -205,6 +247,8 @@ function ContactDialog({ studentId, guardian, onClose }: { studentId: string; gu
     const text = (k: string) => String(d.get(k) ?? "").trim() || null;
     setErrors({});
     save.mutate({
+      fullName: text("fullName") ?? "",
+      relationship: String(d.get("relationship")) as Relationship,
       email: text("email"),
       phone: text("phone"),
       isPrimaryContact: d.get("isPrimaryContact") === "on",
@@ -217,25 +261,36 @@ function ContactDialog({ studentId, guardian, onClose }: { studentId: string; gu
     <Dialog
       open
       onClose={onClose}
-      title={`Contato de ${guardian.name}`}
+      title={guardian ? `Editar ${guardian.name}` : "Adicionar responsável"}
       description="Comunicações por e-mail só vão para responsáveis com e-mail e autorização de contato registrada."
       footer={
         <>
           <Button onClick={onClose}>Cancelar</Button>
-          <Button variant="primary" type="submit" form="contact-form" disabled={save.isPending}>
+          <Button variant="primary" type="submit" form="guardian-form" disabled={save.isPending}>
             Salvar
           </Button>
         </>
       }
     >
-      <form id="contact-form" onSubmit={submit} className="space-y-4" noValidate>
+      <form id="guardian-form" onSubmit={submit} className="space-y-4" noValidate>
         {errors.form ? <Alert tone="critical" title={errors.form} /> : null}
+        <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_12rem]">
+          <Input label="Nome completo" name="fullName" defaultValue={guardian?.name ?? ""} maxLength={200} error={errors.fullName} autoComplete="off" />
+          <Select
+            label="Parentesco"
+            name="relationship"
+            defaultValue={guardian?.relationship ?? "Mae"}
+            options={(Object.keys(relationshipLabels) as Relationship[]).map((r) => ({ value: r, label: relationshipLabels[r] }))}
+            error={errors.relationship}
+          />
+        </div>
+        {guardian ? <p className="-mt-2 text-xs text-muted-foreground">O nome vale para todos os alunos ligados a esta pessoa (irmãos).</p> : null}
         <div className="grid gap-4 sm:grid-cols-2">
-          <Input label="E-mail" name="email" type="email" defaultValue={guardian.email ?? ""} error={errors.email} />
-          <Input label="Telefone" name="phone" defaultValue={guardian.phone ?? ""} />
+          <Input label="E-mail" name="email" type="email" defaultValue={guardian?.email ?? ""} error={errors.email} />
+          <Input label="Telefone" name="phone" defaultValue={guardian?.phone ?? ""} error={errors.phone} />
         </div>
         <label className="flex items-center gap-2 text-sm text-foreground">
-          <input type="checkbox" name="isPrimaryContact" defaultChecked={guardian.isPrimaryContact} /> Contato principal
+          <input type="checkbox" name="isPrimaryContact" defaultChecked={guardian?.isPrimaryContact ?? false} /> Contato principal
         </label>
         <label className="flex items-center gap-2 text-sm text-foreground">
           <input type="checkbox" checked={authorized} onChange={(e) => setAuthorized(e.target.checked)} /> Autoriza receber comunicações da escola
@@ -244,7 +299,7 @@ function ContactDialog({ studentId, guardian, onClose }: { studentId: string; gu
           <Input
             label="Fundamento da autorização"
             name="contactBasis"
-            defaultValue={guardian.contactBasis ?? ""}
+            defaultValue={guardian?.contactBasis ?? ""}
             placeholder="Ex.: termo assinado na matrícula de 2026"
             error={errors.contactBasis}
             hint="Fica registrado com seu nome e a data."

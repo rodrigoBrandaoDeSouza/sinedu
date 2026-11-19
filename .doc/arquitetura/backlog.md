@@ -61,11 +61,11 @@ Legenda: 🔒 segurança bloqueante · 🧪 inclui teste de negação/isolamento
 | F2-03 🧪 ✅ | Profissionais e vínculos com turmas | F2-02 |
 | F2-04 🧪 ✅ | Concessão de turmas ao perfil Consulta | F2-02, F1-12 |
 | F2-05 🧪 ✅ | Alunos, matrículas (histórico), endereços versionados | F2-02 |
-| F2-06 🧪 🟡 | Responsáveis N:N, autorização de contato — cadastro e exibição prontos; edição de responsáveis na tela fica para a importação (F3) | F2-05 |
+| F2-06 🧪 ✅ | Responsáveis N:N, autorização de contato. Na tela do aluno, Direção e Pedagogia cadastram (sempre pessoa nova, nunca mescla por nome), corrigem nome/parentesco, editam contato e desvinculam (a pessoa e o histórico ficam) — `GuardianTests` | F2-05 |
 | F2-07 🧪 ✅ | Escopo de aluno para Professor/Consulta | F2-03, F2-04, F2-05 |
 | F2-08 🧪 ✅ | Busca de alunos paginada e restrita ao escopo | F2-07 |
 | F2-09 ✅ | Front: períodos, turmas, lista de alunos, painel do aluno (sem abas sensíveis) | F2-01..F2-08 |
-| F2-10 🟡 | Front: administração da escola (usuários, convites, vínculos, categorias, aprovação de suporte) — usuários, convites e acesso de suporte prontos; categorias ainda não | F1-12, F2-03, P-11 |
+| F2-10 ✅ | Front: administração da escola (usuários, convites, vínculos, categorias, aprovação de suporte). Categorias em Ocorrências → Categorias (criar, renomear, desativar; só a Direção, como nas decisões) | F1-12, F2-03, P-11 |
 | F2-11 | Contrato OpenAPI + cliente TypeScript gerado | F2-05 |
 
 ## Fase 3 — Importação

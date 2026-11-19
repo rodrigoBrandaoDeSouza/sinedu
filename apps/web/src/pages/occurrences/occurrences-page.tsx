@@ -143,19 +143,61 @@ function CategoriesDialog({ open, onClose }: { open: boolean; onClose: () => voi
     onError: (err) => setError(errorsOf(err).name ?? errorsOf(err).form),
   });
   const toggle = useMutation({ mutationFn: (c: { id: string; name: string; isActive: boolean }) => occurrencesApi.updateCategory(c.id, c.name, !c.isActive), onSuccess: refresh });
+  const [renaming, setRenaming] = useState<{ id: string; name: string; isActive: boolean }>();
+  const rename = useMutation({
+    mutationFn: (c: { id: string; name: string; isActive: boolean }) => occurrencesApi.updateCategory(c.id, c.name.trim(), c.isActive),
+    onSuccess: () => {
+      setRenaming(undefined);
+      setError(undefined);
+      refresh();
+    },
+    onError: (err) => setError(errorsOf(err).name ?? errorsOf(err).form),
+  });
 
   return (
-    <Dialog open={open} onClose={onClose} title="Categorias de ocorrência" description="Desativar uma categoria não altera as ocorrências que já a usam.">
+    <Dialog open={open} onClose={onClose} title="Categorias de ocorrência" description="Renomear ou desativar uma categoria não altera as ocorrências que já a usam.">
       <div className="space-y-4">
         <ul className="divide-y divide-border">
-          {categories.data?.categories.map((c) => (
-            <li key={c.id} className="flex items-center justify-between py-2">
-              <span className={c.isActive ? "text-foreground" : "text-muted-foreground line-through"}>{c.name}</span>
-              <Button size="sm" variant="ghost" onClick={() => toggle.mutate(c)}>
-                {c.isActive ? "Desativar" : "Reativar"}
-              </Button>
-            </li>
-          ))}
+          {categories.data?.categories.map((c) =>
+            renaming?.id === c.id ? (
+              <li key={c.id} className="py-2">
+                <form
+                  className="flex items-end gap-2"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    rename.mutate(renaming);
+                  }}
+                >
+                  <Input
+                    label={`Novo nome para ${c.name}`}
+                    value={renaming.name}
+                    onChange={(e) => setRenaming({ ...renaming, name: e.target.value })}
+                    className="flex-1"
+                    maxLength={80}
+                    autoFocus
+                  />
+                  <Button type="submit" variant="primary" disabled={renaming.name.trim().length < 2 || rename.isPending}>
+                    Salvar
+                  </Button>
+                  <Button type="button" variant="ghost" onClick={() => setRenaming(undefined)}>
+                    Cancelar
+                  </Button>
+                </form>
+              </li>
+            ) : (
+              <li key={c.id} className="flex items-center justify-between gap-2 py-2">
+                <span className={c.isActive ? "text-foreground" : "text-muted-foreground line-through"}>{c.name}</span>
+                <span className="flex gap-1">
+                  <Button size="sm" variant="ghost" onClick={() => setRenaming({ id: c.id, name: c.name, isActive: c.isActive })}>
+                    Renomear
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => toggle.mutate(c)}>
+                    {c.isActive ? "Desativar" : "Reativar"}
+                  </Button>
+                </span>
+              </li>
+            ),
+          )}
         </ul>
         <form
           className="flex items-end gap-2"
