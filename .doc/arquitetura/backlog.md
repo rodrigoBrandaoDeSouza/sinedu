@@ -66,7 +66,7 @@ Legenda: 🔒 segurança bloqueante · 🧪 inclui teste de negação/isolamento
 | F2-08 🧪 ✅ | Busca de alunos paginada e restrita ao escopo | F2-07 |
 | F2-09 ✅ | Front: períodos, turmas, lista de alunos, painel do aluno (sem abas sensíveis) | F2-01..F2-08 |
 | F2-10 ✅ | Front: administração da escola (usuários, convites, vínculos, categorias, aprovação de suporte). Categorias em Ocorrências → Categorias (criar, renomear, desativar; só a Direção, como nas decisões) | F1-12, F2-03, P-11 |
-| F2-11 | Contrato OpenAPI + cliente TypeScript gerado | F2-05 |
+| F2-11 🟡 | Contrato OpenAPI das duas APIs versionado em `.doc/api` (só fora de produção), com teste que acusa contrato desatualizado; tipos TypeScript por `npm run api:types` — falta gerar os tipos pela primeira vez e adotá-los nos fronts | F2-05 |
 
 ## Fase 3 — Importação
 

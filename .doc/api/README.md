@@ -9,8 +9,13 @@ Duas APIs, cada uma no próprio host:
 
 `conta.sinedu.com.br` expõe só os endpoints OIDC padrão (`/connect/authorize`, `/connect/token`, `/.well-known/openid-configuration`) e as telas de login.
 
-- Contratos oficiais: `openapi-tenant.yaml` e `openapi-platform.yaml` (nesta pasta, quando criados).
-- Toda alteração de endpoint começa pelo contrato.
+- **Contratos (F2-11):** `openapi-escola.json` e `openapi-plataforma.json`, nesta pasta. São gerados pelas próprias APIs em `/openapi/v1.json`, que só existe fora de produção: o mapa da API não fica público.
+- O teste `OpenApiContractTests` falha quando a API muda e o contrato não foi atualizado. Para regravar:
+  ```bash
+  SINEDU_UPDATE_CONTRACT=1 dotnet test apps/api/tests/Sinedu.IntegrationTests --filter OpenApiContractTests
+  npm run api:types   # gera apps/web/src/lib/api.gen.ts e apps/painel/src/lib/api.gen.ts
+  ```
+- Toda alteração de endpoint atualiza o contrato no mesmo commit.
 - Mudanças incompatíveis exigem nova versão (`/v2`); o app Android (pós-MVP) terá versões antigas em uso.
 
 ## Mapeamento das rotas ilustrativas da spec (seção 13)

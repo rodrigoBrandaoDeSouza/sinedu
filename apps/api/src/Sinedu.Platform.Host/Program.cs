@@ -28,6 +28,7 @@ services.AddOptions<SineduUrls>().Bind(configuration.GetSection(SineduUrls.Secti
 var hostClassifier = new HostClassifier(urls.BaseDomain);
 services.AddSingleton(hostClassifier);
 services.AddSineduInfrastructure(configuration);
+services.AddOpenApi(); // F2-11: contrato em /openapi/v1.json (fora de produção)
 services.AddHttpContextAccessor();
 
 services.AddDbContext<AuditDbContext>(o => o.UseSineduPostgres(platformConnection, AuditDbContext.Schema));
@@ -107,6 +108,12 @@ app.MapGet("/api/health", (HttpContext context) => Results.Ok(new
 }));
 
 app.MapModules();
+
+// Contrato OpenAPI só fora de produção: o mapa da API não fica público. Versionado em .doc/api/.
+if (!app.Environment.IsProduction())
+{
+    app.MapOpenApi().AllowAnonymous();
+}
 
 await app.RunAsync();
 

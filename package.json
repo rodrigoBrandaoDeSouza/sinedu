@@ -15,7 +15,8 @@
     "test": "npm run test --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "dev:conta": "npm run dev -w @sinedu/conta",
-    "e2e": "playwright test -c e2e/playwright.config.ts"
+    "e2e": "playwright test -c e2e/playwright.config.ts",
+    "api:types": "npx -y openapi-typescript@7.13.0 .doc/api/openapi-escola.json -o apps/web/src/lib/api.gen.ts && npx -y openapi-typescript@7.13.0 .doc/api/openapi-plataforma.json -o apps/painel/src/lib/api.gen.ts"
   },
   "devDependencies": {
     "@playwright/test": "^1.65.1",

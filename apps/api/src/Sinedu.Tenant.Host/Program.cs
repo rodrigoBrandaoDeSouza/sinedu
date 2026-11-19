@@ -27,6 +27,7 @@ var urls = configuration.GetSection(SineduUrls.Section).Get<SineduUrls>()
 services.AddOptions<SineduUrls>().Bind(configuration.GetSection(SineduUrls.Section));
 services.AddSingleton(new HostClassifier(urls.BaseDomain));
 services.AddSineduInfrastructure(configuration);
+services.AddOpenApi(); // F2-11: contrato em /openapi/v1.json (fora de produção)
 services.AddHttpContextAccessor();
 services.AddMemoryCache();
 
@@ -86,5 +87,11 @@ app.MapGet("/api/health", (TenantScope tenant) => Results.Ok(new { status = "ok"
 SessionEndpoints.Map(app);
 Sinedu.Tenant.Host.Operations.ClosingExport.Map(app);
 app.MapModules();
+
+// Contrato OpenAPI só fora de produção: o mapa da API não fica público. Versionado em .doc/api/.
+if (!app.Environment.IsProduction())
+{
+    app.MapOpenApi().AllowAnonymous();
+}
 
 await app.RunAsync();
