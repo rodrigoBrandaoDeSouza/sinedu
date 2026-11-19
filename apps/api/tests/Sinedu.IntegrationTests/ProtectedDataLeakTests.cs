@@ -99,17 +99,26 @@ public class ProtectedDataLeakTests(SineduFixture fx)
         var (studentId, sentinels) = await SeedSentinelsAsync();
 
         // Controles positivos: a varredura enxerga dados comuns, há logs e há objetos (senão o teste estaria cego).
+        string code;
         using (var director = fx.SchoolClient(A, await fx.SignInAsync(A, [Roles.Director])))
         {
-            var code = (await director.GetFromJsonAsync<JsonElement>($"/api/students/{studentId}")).GetProperty("institutionalCode").GetString()!;
+            code = (await director.GetFromJsonAsync<JsonElement>($"/api/students/{studentId}")).GetProperty("institutionalCode").GetString()!;
             Assert.NotEmpty(await DbScan.FindAsync(await fx.SchoolConnectionAsync(A, owner: true), code));
         }
 
         Assert.NotEmpty(fx.Logs.Lines);
         Assert.NotEmpty(fx.Storage.Objects);
 
+        // F4-08: backup lógico de verdade (pg_dump), como o backup diário. Controles positivos: o dump tem o aluno
+        // e tem os registros protegidos (cifrados).
+        var dump = await fx.PgDumpAsync(A);
+        Assert.Contains(code, dump, StringComparison.Ordinal);
+        Assert.Contains("COPY protected.", dump, StringComparison.Ordinal);
+
         foreach (var sentinel in sentinels)
         {
+            Assert.DoesNotContain(sentinel, dump, StringComparison.Ordinal);
+
             // Tabelas brutas da escola (como num dump/backup lógico) e da plataforma (métricas, auditoria, suporte).
             Assert.Empty(await DbScan.FindAsync(await fx.SchoolConnectionAsync(A, owner: true), sentinel));
             Assert.Empty(await DbScan.FindAsync(fx.PlatformConnectionString, sentinel));

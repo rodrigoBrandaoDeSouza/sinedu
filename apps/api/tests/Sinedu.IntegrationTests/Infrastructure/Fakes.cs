@@ -210,6 +210,13 @@ public sealed class FakePlatformMemberships : IPlatformMemberships
         await scope.ServiceProvider.GetRequiredService<SupportRequests>().RevokeAsync(tenantSlug, requestId, revokedBy, ct);
     }
 
+    public async Task<IReadOnlyList<PlatformAccountEvent>> AccountEventsAsync(string tenantSlug, CancellationToken ct)
+    {
+        await using var scope = PlatformServices!().CreateAsyncScope();
+        var events = await scope.ServiceProvider.GetRequiredService<Sinedu.Platform.Identity.AccountEventsQuery>().ForTenantAsync(tenantSlug, ct) ?? [];
+        return events.Select(e => new PlatformAccountEvent(e.Id, e.Action, e.UserId, e.OccurredAt)).ToList();
+    }
+
     private static PlatformSupportRequest Map(TenantSupportRequest r) =>
         new(r.Id, r.UserId, r.RequesterName, r.RequesterEmail, r.Reason, r.DurationHours, r.Status, r.CreatedAt, r.ExpiresAt);
 }

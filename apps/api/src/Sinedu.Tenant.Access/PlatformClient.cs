@@ -9,6 +9,9 @@ namespace Sinedu.Tenant.Access;
 
 public sealed record PlatformInviteResult(Guid? UserId, bool PlatformAccount);
 
+/// <summary>Desbloqueio ou reinício de MFA feito no painel sobre a conta de alguém desta escola (P-12).</summary>
+public sealed record PlatformAccountEvent(long Id, string Action, Guid UserId, DateTimeOffset OccurredAt);
+
 /// <summary>Pedido de suporte como a plataforma o devolve (sem dados de aluno).</summary>
 public sealed record PlatformSupportRequest(
     Guid Id, Guid UserId, string RequesterName, string RequesterEmail, string Reason, int DurationHours,
@@ -28,6 +31,9 @@ public interface IPlatformMemberships
     Task<PlatformSupportRequest?> DecideSupportAsync(string tenantSlug, Guid requestId, bool approve, string decidedBy, CancellationToken ct);
 
     Task RevokeSupportAsync(string tenantSlug, Guid requestId, string revokedBy, CancellationToken ct);
+
+    /// <summary>Ações da plataforma sobre contas de pessoas desta escola, dos últimos 30 dias (P-12).</summary>
+    Task<IReadOnlyList<PlatformAccountEvent>> AccountEventsAsync(string tenantSlug, CancellationToken ct);
 }
 
 internal sealed class PlatformMembershipsClient(HttpClient http, IOptions<SineduUrls> urls, IConfiguration configuration, TimeProvider clock)
@@ -76,6 +82,14 @@ internal sealed class PlatformMembershipsClient(HttpClient http, IOptions<Sinedu
 
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadFromJsonAsync<PlatformSupportRequest>(ct);
+    }
+
+    public async Task<IReadOnlyList<PlatformAccountEvent>> AccountEventsAsync(string tenantSlug, CancellationToken ct)
+    {
+        using var request = await NewRequestAsync($"api/internal/account-events?tenantSlug={Uri.EscapeDataString(tenantSlug)}", null, ct);
+        using var response = await http.SendAsync(request, ct);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<List<PlatformAccountEvent>>(ct) ?? [];
     }
 
     public async Task RevokeSupportAsync(string tenantSlug, Guid requestId, string revokedBy, CancellationToken ct)

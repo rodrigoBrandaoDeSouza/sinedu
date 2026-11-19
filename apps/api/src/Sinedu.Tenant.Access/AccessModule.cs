@@ -21,6 +21,7 @@ public sealed class AccessModule : IModule
         services.AddTenantDbContext<AccessDbContext>(AccessDbContext.Schema);
         services.AddScoped<AccessService>();
         services.AddScoped<SupportAccessService>();
+        services.AddScoped<PlatformAccountEventsSync>();
         services.AddHttpClient<IPlatformMemberships, PlatformMembershipsClient>()
             .AddHttpMessageHandler(sp => new AccountBackchannelHandler(sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<SineduUrls>>()));
     }

@@ -253,6 +253,18 @@ public sealed class SineduFixture : IAsyncLifetime
         await Sinedu.Platform.Metrics.MetricsCollector.EnsureRoleAsync(Vault, admin.ConnectionString, CancellationToken.None);
     }
 
+    /// <summary>
+    /// Backup lógico real do banco de uma escola (pg_dump dentro do contêiner, como o backup.sh da VPS faz).
+    /// </summary>
+    public async Task<string> PgDumpAsync(string slug)
+    {
+        await using var db = PlatformDb<TenantsDbContext>(TenantsDbContext.Schema);
+        var database = await db.Tenants.Where(t => t.Slug == slug).Select(t => t.DatabaseName).SingleAsync();
+        var result = await _postgres.ExecAsync(["pg_dump", "-U", "sinedu", "--no-owner", database]);
+        if (result.ExitCode != 0) throw new InvalidOperationException($"pg_dump falhou: {result.Stderr}");
+        return result.Stdout;
+    }
+
     /// <summary>Escola extra provisionada pelo código de produção (para testes que a encerram ou destroem).</summary>
     public Task ProvisionExtraAsync(string slug, string name) => ProvisionAsync(slug, name);
 

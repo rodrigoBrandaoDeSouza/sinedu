@@ -48,7 +48,7 @@ Legenda: 🔒 segurança bloqueante · 🧪 inclui teste de negação/isolamento
 | P-09 ✅ | Alertas de cobrança calculados na hora: fatura vencida, contrato vencendo/vencido, escola sem contrato, acima da última faixa. SUPORTE só vê | P-08 |
 | P-10 🔒 ✅ | Métricas agregadas: view `metrics.v_counts` + papel `sinedu_metrics` + job noturno + tela | P-02 |
 | P-11 🔒🧪 ✅ | Acesso de suporte: pedido no painel → aprovação do Diretor na escola → papel temporário somente leitura → expiração/revogação. Login único só aceita conta da plataforma com liberação vigente; toda requisição auditada como `support_session`; métodos que mudam estado → 403 (`SupportAccessTests`) | P-01, F1-08 |
-| P-12 🔒 🟡 | Contas de plataforma, desbloqueio e reset de MFA de usuários (auditado, com aviso por e-mail) — pronto na plataforma; o registro também na auditoria da escola fica para o P-11 | P-01 |
+| P-12 🔒 ✅ | Contas de plataforma, desbloqueio e reset de MFA de usuários (auditado, com aviso por e-mail). A escola busca esses eventos pela API interna e grava na própria auditoria, com o horário original e sem duplicar (`PlatformAccountEventsTests`) | P-01 |
 | P-13 🔒🧪 ✅ | Encerramento de escola: modo encerramento (só a Direção baixa a exportação dos dados comuns, sem Saúde/Proteção), desfazer, destruição manual após 90 dias com o endereço digitado (banco, papéis, bucket, segredos e chave Transit) — `ClosureTests` | P-03 |
 | P-14 🔒🧪 ✅ | `PlatformPanelTests`: nenhum dado de aluno alcançável pelo painel | P-10, P-11 |
 
@@ -95,7 +95,7 @@ Legenda: 🔒 segurança bloqueante · 🧪 inclui teste de negação/isolamento
 | F4-05 🔒🧪 🟡 | Importação de Saúde/Proteção (fluxo dedicado) — Saúde pronta; Proteção fica no cadastro manual (registros dependem de documento e vigência) | F4-02, F3-03 |
 | F4-06 🔒 ✅ | Exportação excepcional com justificativa, marca d'água e auditoria | F4-02 |
 | F4-07 ✅ | Front: abas Saúde e Proteção carregadas sob demanda só para perfis autorizados; modal de step-up | F4-01..F4-03 |
-| F4-08 🔒🧪 🟡 | `ProtectedDataLeakTests` completo (inclui métricas da plataforma, suporte e backups) — varre respostas, cabeçalhos, tabelas brutas da escola e da plataforma, S3, logs e e-mails; métricas (P-10) e suporte (P-11) cobertos; backups ainda não | F4-01..F4-06, P-10, P-11 |
+| F4-08 🔒🧪 ✅ | `ProtectedDataLeakTests` completo (inclui métricas da plataforma, suporte e backups) — varre respostas, cabeçalhos, tabelas brutas da escola e da plataforma, S3, logs e e-mails; métricas (P-10), suporte (P-11) e backup lógico real (`pg_dump` do banco da escola) cobertos | F4-01..F4-06, P-10, P-11 |
 | F4-09 🔒 ✅ | Rotação de chave da escola (`rewrap`) e runbook | F4-01 |
 
 ## Fase 5 — Ocorrências e comunicações

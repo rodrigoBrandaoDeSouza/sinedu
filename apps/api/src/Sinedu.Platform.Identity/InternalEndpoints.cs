@@ -42,6 +42,10 @@ internal static class InternalEndpoints
             }
         });
 
+        // P-12: desbloqueios e reinícios de MFA de pessoas desta escola, para a auditoria da escola.
+        group.MapGet("/account-events", async (string tenantSlug, AccountEventsQuery query, CancellationToken ct) =>
+            await query.ForTenantAsync(tenantSlug, ct) is { } events ? Results.Ok(events) : Results.NotFound());
+
         group.MapPost("/memberships/sync", async (SyncRequest body, ITenantDirectory tenants, AccountService accounts, CancellationToken ct) =>
         {
             var tenant = await tenants.FindBySlugAsync(body.TenantSlug, ct);

@@ -43,6 +43,7 @@ public sealed class IdentityModule : IModule
 
         services.AddScoped<TotpService>();
         services.AddScoped<AccountService>();
+        services.AddScoped<AccountEventsQuery>();
         services.AddScoped<IAccountInvitations>(sp => sp.GetRequiredService<AccountService>());
 
         AddOpenIddict(services, urls, configuration);

@@ -23,6 +23,8 @@ internal sealed class SupportRequestWorker(TenantJobRunner runner, IConfiguratio
         {
             await runner.ForEachActiveTenantAsync("Pedidos de suporte",
                 (sp, ct) => sp.GetRequiredService<SupportAccessService>().SyncAsync(ct), stoppingToken);
+            await runner.ForEachActiveTenantAsync("Eventos de conta da plataforma",
+                (sp, ct) => sp.GetRequiredService<PlatformAccountEventsSync>().SyncAsync(ct), stoppingToken);
         }
     }
 }
