@@ -22,10 +22,13 @@ public interface ITenantContext
     string TransitKeyName { get; }
 
     string BucketName { get; }
+
+    /// <summary>Escola em encerramento (P-13): só login e a exportação de encerramento pela Direção.</summary>
+    bool Closing { get; }
 }
 
 public sealed record TenantContext(
-    Guid Id, string Slug, string DisplayName, string ConnectionString, string TransitKeyName, string BucketName) : ITenantContext;
+    Guid Id, string Slug, string DisplayName, string ConnectionString, string TransitKeyName, string BucketName, bool Closing = false) : ITenantContext;
 
 /// <summary>Guarda a escola corrente no escopo (requisição ou job). Não existe caminho para trocar de escola no meio do escopo.</summary>
 public sealed class TenantScope

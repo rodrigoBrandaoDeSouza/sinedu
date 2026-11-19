@@ -26,6 +26,7 @@ public sealed class TenantsModule : IModule
         services.AddOptions<TenantDatabaseOptions>().Bind(configuration.GetSection(TenantDatabaseOptions.Section));
         services.AddScoped<ITenantDirectory, PlatformTenantDirectory>();
         services.AddScoped<TenantProvisioner>();
+        services.AddScoped<TenantCloser>();
         services.AddSingleton<ProvisioningScheduler>();
         services.AddHostedService<ProvisioningWorker>();
     }
@@ -35,14 +36,15 @@ public sealed class TenantsModule : IModule
         var tenants = endpoints.MapPanelApi("/tenants").RequireAuthorization(Policies.PlatformStaff);
         TenantSmtpEndpoints.Map(tenants);
 
-        tenants.MapGet("/", async (TenantsDbContext db, Microsoft.Extensions.Options.IOptions<SineduUrls> urls, CancellationToken ct) =>
+        tenants.MapGet("/", async (TenantsDbContext db, TenantCloser closer, Microsoft.Extensions.Options.IOptions<SineduUrls> urls, CancellationToken ct) =>
         {
             var rows = await db.Tenants.AsNoTracking()
                 .OrderBy(t => t.DisplayName)
-                .Select(t => new { t.Id, t.Slug, t.DisplayName, t.NetworkId, Network = t.Network != null ? t.Network.Name : null, t.Status, t.StatusReason, t.SchemaVersion, t.CreatedAt })
+                .Select(t => new { t.Id, t.Slug, t.DisplayName, t.NetworkId, Network = t.Network != null ? t.Network.Name : null, t.Status, t.StatusReason, t.SchemaVersion, t.CreatedAt, t.ClosingStartedAt, t.ClosedAt })
                 .ToListAsync(ct);
             return rows.Select(t => new TenantSummary(
-                t.Id, t.Slug, t.DisplayName, urls.Value.TenantUrl(t.Slug), t.Network, t.Status, t.StatusReason, t.SchemaVersion, t.CreatedAt, t.NetworkId));
+                t.Id, t.Slug, t.DisplayName, urls.Value.TenantUrl(t.Slug), t.Network, t.Status, t.StatusReason, t.SchemaVersion, t.CreatedAt, t.NetworkId,
+                t.ClosingStartedAt, t.ClosingStartedAt + closer.Retention, t.ClosedAt));
         });
 
         tenants.MapGet("/{id:guid}", async (Guid id, TenantsDbContext db, CancellationToken ct) =>
@@ -72,6 +74,23 @@ public sealed class TenantsModule : IModule
 
         tenants.MapPost("/{id:guid}/suspend", (Guid id, ReasonRequest body, TenantsDbContext db, IAuditLog audit, TimeProvider clock, CancellationToken ct) =>
             ChangeStatusAsync(id, TenantStatus.Active, TenantStatus.Suspended, body.Reason, "tenant_suspended", db, audit, clock, ct))
+            .RequireAuthorization(Policies.PlatformSuperAdmin);
+
+        // ---- Encerramento (P-13): iniciar, desfazer e destruir (após a retenção, com o endereço digitado) ----
+        tenants.MapPost("/{id:guid}/close", async (Guid id, ReasonRequest body, TenantCloser closer, CancellationToken ct) =>
+            string.IsNullOrWhiteSpace(body.Reason)
+                ? Results.ValidationProblem(new Dictionary<string, string[]> { ["reason"] = ["Informe o motivo."] })
+                : Closure(await closer.StartAsync(id, body.Reason, ct)))
+            .RequireAuthorization(Policies.PlatformSuperAdmin);
+
+        tenants.MapPost("/{id:guid}/close/cancel", async (Guid id, ReasonRequest body, TenantCloser closer, CancellationToken ct) =>
+            string.IsNullOrWhiteSpace(body.Reason)
+                ? Results.ValidationProblem(new Dictionary<string, string[]> { ["reason"] = ["Informe o motivo."] })
+                : Closure(await closer.CancelAsync(id, body.Reason, ct)))
+            .RequireAuthorization(Policies.PlatformSuperAdmin);
+
+        tenants.MapPost("/{id:guid}/destroy", async (Guid id, DestroyRequest body, TenantCloser closer, CancellationToken ct) =>
+            Closure(await closer.DestroyAsync(id, body.ConfirmSlug ?? "", ct)))
             .RequireAuthorization(Policies.PlatformSuperAdmin);
 
         tenants.MapPost("/{id:guid}/reactivate", (Guid id, ReasonRequest body, TenantsDbContext db, IAuditLog audit, TimeProvider clock, CancellationToken ct) =>
@@ -147,6 +166,15 @@ public sealed class TenantsModule : IModule
             return Results.NoContent();
         }).RequireAuthorization(Policies.PlatformSuperAdmin);
     }
+
+    private static IResult Closure(ClosureResult result) => result switch
+    {
+        ClosureResult.Done => Results.NoContent(),
+        ClosureResult.NotFound => Results.NotFound(),
+        ClosureResult.ConfirmationMismatch => Results.ValidationProblem(new Dictionary<string, string[]> { ["confirmSlug"] = ["Digite o endereço exato da escola para confirmar."] }),
+        ClosureResult.RetentionPending => Results.Problem(statusCode: 409, title: "O prazo de retenção ainda não terminou."),
+        _ => Results.Problem(statusCode: 409, title: "A escola não está na situação certa para esta ação."),
+    };
 
     private static async Task<Dictionary<string, string[]>> ValidateNetworkAsync(CreateNetworkRequest body, Guid? id, TenantsDbContext db, CancellationToken ct)
     {
@@ -228,9 +256,11 @@ public sealed record TenantNetworkRequest(Guid? NetworkId);
 
 public sealed record ReasonRequest(string? Reason);
 
+public sealed record DestroyRequest(string? ConfirmSlug);
+
 public sealed record TenantSummary(
     Guid Id, string Slug, string DisplayName, Uri Url, string? Network, TenantStatus Status, string? StatusReason, string? SchemaVersion, DateTimeOffset CreatedAt,
-    Guid? NetworkId = null);
+    Guid? NetworkId = null, DateTimeOffset? ClosingStartedAt = null, DateTimeOffset? DestroyableAt = null, DateTimeOffset? ClosedAt = null);
 
 public sealed record TenantDetails(
     Guid Id, string Slug, string DisplayName, string? Network, string? InstitutionalCode, TenantStatus Status, string? StatusReason,

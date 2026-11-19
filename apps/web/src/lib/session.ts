@@ -11,6 +11,8 @@ export interface Me {
   accountUrl: string;
   /** Sessão de suporte da plataforma (P-11): até quando o acesso liberado pela Direção vale. */
   supportUntil?: string | null;
+  /** Escola em encerramento (P-13): só a exportação de encerramento pela Direção. */
+  closing?: boolean;
 }
 
 export const roleLabels: Record<SchoolRole, string> = {

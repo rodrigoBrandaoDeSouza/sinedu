@@ -70,3 +70,22 @@ describe("Acesso de suporte (P-11)", () => {
     expect(screen.queryByRole("link", { name: /acesso de suporte/i })).not.toBeInTheDocument();
   });
 });
+
+describe("Escola em encerramento (P-13)", () => {
+  it("Direção vê só a tela de encerramento com a exportação", async () => {
+    signedInAs(["DIRETOR"], { closing: true });
+    renderAt("/alunos");
+
+    expect(await screen.findByText(/está em encerramento/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /baixar exportação/i })).toHaveAttribute("href", "/api/closing/export");
+    expect(screen.queryByRole("link", { name: /alunos/i })).not.toBeInTheDocument();
+  });
+
+  it("demais papéis não têm a exportação", async () => {
+    signedInAs(["PROFESSOR"], { closing: true });
+    renderAt("/");
+
+    expect(await screen.findByText(/está em encerramento/)).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /baixar exportação/i })).not.toBeInTheDocument();
+  });
+});

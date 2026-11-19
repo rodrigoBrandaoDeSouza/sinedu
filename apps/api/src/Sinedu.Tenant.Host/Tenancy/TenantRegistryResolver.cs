@@ -37,9 +37,9 @@ public sealed class TenantRegistryResolver(RegistryDataSource registry, ISecretS
 
         switch (entry.Status)
         {
-            case TenantStatus.Suspended or TenantStatus.Closing or TenantStatus.Closed:
+            case TenantStatus.Suspended or TenantStatus.Closed:
                 return new TenantResolution(TenantResolutionStatus.Unavailable);
-            case not TenantStatus.Active:
+            case not (TenantStatus.Active or TenantStatus.Closing):
                 return new TenantResolution(TenantResolutionStatus.NotFound);
         }
 
@@ -63,7 +63,8 @@ public sealed class TenantRegistryResolver(RegistryDataSource registry, ISecretS
 
         return new TenantResolution(
             TenantResolutionStatus.Ready,
-            new TenantContext(entry.Id, entry.Slug, entry.DisplayName, connectionString!, entry.TransitKeyName, entry.BucketName));
+            new TenantContext(entry.Id, entry.Slug, entry.DisplayName, connectionString!, entry.TransitKeyName, entry.BucketName,
+                Closing: entry.Status == TenantStatus.Closing));
     }
 
     private async Task<TenantRegistration?> LoadAsync(string slug, CancellationToken cancellationToken)

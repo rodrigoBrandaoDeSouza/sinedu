@@ -74,6 +74,7 @@ app.UseSineduWebDefaults();
 // Toda requisição precisa de uma escola ativa resolvida pelo subdomínio — antes da autenticação,
 // porque a sessão é validada no banco da escola.
 app.UseMiddleware<TenantResolutionMiddleware>();
+app.UseMiddleware<Sinedu.Tenant.Host.Operations.ClosingModeMiddleware>();
 app.UseMiddleware<SameOriginMiddleware>();
 app.UseAuthentication();
 app.UseMiddleware<Sinedu.Tenant.Host.Auth.SupportSessionMiddleware>();
@@ -83,6 +84,7 @@ app.MapGet("/api/health", (TenantScope tenant) => Results.Ok(new { status = "ok"
     .AllowAnonymous();
 
 SessionEndpoints.Map(app);
+Sinedu.Tenant.Host.Operations.ClosingExport.Map(app);
 app.MapModules();
 
 await app.RunAsync();

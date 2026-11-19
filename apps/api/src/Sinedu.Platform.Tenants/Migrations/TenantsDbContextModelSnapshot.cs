@@ -120,6 +120,14 @@ namespace Sinedu.Platform.Tenants.Migrations
                         .HasColumnType("character varying(80)")
                         .HasColumnName("bucket_name");
 
+                    b.Property<DateTimeOffset?>("ClosedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("closed_at");
+
+                    b.Property<DateTimeOffset?>("ClosingStartedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("closing_started_at");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");

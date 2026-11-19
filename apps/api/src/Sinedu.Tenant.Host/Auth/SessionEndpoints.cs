@@ -65,6 +65,7 @@ internal static class SessionEndpoints
                 authTime = SchoolClaims.AuthTimeOf(user),
                 accountUrl = urls.Value.AccountUrl,
                 supportUntil,
+                closing = tenant.Current.Closing,
             });
         });
 

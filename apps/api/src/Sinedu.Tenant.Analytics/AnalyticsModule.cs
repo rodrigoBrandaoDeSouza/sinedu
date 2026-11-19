@@ -176,13 +176,5 @@ internal static class Export
     /// Célula CSV segura: aspas quando preciso e neutraliza fórmula (=, +, -, @, tab, CR). Nomes de turma e categoria
     /// são digitados pela escola e não podem virar fórmula ao abrir no Excel.
     /// </summary>
-    internal static string Quote(string value)
-    {
-        if (value.Length > 0 && value[0] is '=' or '+' or '-' or '@' or '\t' or '\r')
-        {
-            value = "'" + value;
-        }
-
-        return value.Contains(';') || value.Contains('"') || value.Contains('\n') ? $"\"{value.Replace("\"", "\"\"")}\"" : value;
-    }
+    internal static string Quote(string value) => Sinedu.SharedKernel.Web.Csv.Cell(value);
 }

@@ -1,10 +1,12 @@
 import { Alert, AppShell, Button, postNavigate, ThemeToggle, type NavSection } from "@sinedu/ui";
 import {
+  Archive,
   Bell,
   BookOpenCheck,
   CalendarClock,
   ChevronsUpDown,
   ClipboardList,
+  Download,
   FileBarChart,
   GraduationCap,
   Headset,
@@ -31,6 +33,12 @@ export function SchoolLayout() {
 }
 
 function SchoolShell() {
+  const me = useSession();
+  if (me.closing) return <ClosingScreen />;
+  return <SchoolNavigation />;
+}
+
+function SchoolNavigation() {
   const me = useSession();
   const navigate = useNavigate();
   const has = (...roles: SchoolRole[]) => me.roles.some((r) => roles.includes(r));
@@ -155,6 +163,48 @@ function SchoolShell() {
       ) : null}
       <Outlet />
     </AppShell>
+  );
+}
+
+/** P-13: escola em encerramento. Tudo fechado; a Direção baixa a exportação dos dados comuns (sem Saúde/Proteção). */
+function ClosingScreen() {
+  const me = useSession();
+  const director = me.roles.includes("DIRETOR");
+  return (
+    <div className="grid min-h-dvh place-items-center bg-background px-4">
+      <div className="w-full max-w-lg rounded-(--radius-card) border border-border bg-surface p-6 shadow-card">
+        <span className="grid size-10 place-items-center rounded-xl bg-warning-soft text-warning-text">
+          <Archive className="size-5" aria-hidden />
+        </span>
+        <h1 className="mt-4 text-xl font-semibold tracking-tight text-foreground">{me.school.name} está em encerramento</h1>
+        <p className="mt-2 text-sm text-foreground-secondary">
+          O acesso ao sistema foi encerrado. Os dados ficam guardados por um período e depois são destruídos de forma definitiva.
+        </p>
+        {director ? (
+          <>
+            <p className="mt-4 text-sm text-foreground-secondary">
+              Baixe a exportação com os dados comuns da escola (turmas, alunos, matrículas, responsáveis, equipe e ocorrências), em planilhas.
+              Saúde e Proteção/Sigilo não são exportados. Guarde o arquivo em local seguro: ele tem dados pessoais de estudantes.
+            </p>
+            <a
+              href="/api/closing/export"
+              download
+              className="mt-4 inline-flex h-10 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary-hover"
+            >
+              <Download className="size-4" aria-hidden />
+              Baixar exportação (ZIP)
+            </a>
+          </>
+        ) : (
+          <p className="mt-4 text-sm text-foreground-secondary">Em caso de dúvida, procure a Direção da escola.</p>
+        )}
+        <div className="mt-6 border-t border-border pt-4">
+          <Button variant="ghost" size="sm" onClick={() => postNavigate("/auth/logout")}>
+            <LogOut /> Sair
+          </Button>
+        </div>
+      </div>
+    </div>
   );
 }
 

@@ -115,4 +115,4 @@ Endereços: `conta.`, `painel.`, `mail.` (Mailpit, com senha em `secrets/mailpit
 | Suspender / reativar | Painel. Suspensa: ninguém entra, dados preservados, fila pausada (P12). |
 | Rotação de chave | [Runbook](../arquitetura/runbook-rotacao-de-chave.md): `vault write -f transit/keys/tenant-<id>/rotate` e depois `rewrap-protected <slug>`. |
 | E-mail que falhou | Escola → Comunicações → Reenviar. A fila tenta sozinha 3 vezes (1 e 5 minutos). |
-| Encerrar escola | P11: exportar dados comuns para a escola, bloquear por 90 dias, destruir banco, bucket e chave. |
+| Encerrar escola | Painel → Escolas → **Encerrar** (motivo obrigatório). A escola fecha para todos. A Direção entra e baixa a **exportação de encerramento** (ZIP com CSVs de turmas, alunos, matrículas, responsáveis, endereços, equipe e ocorrências; **sem** Saúde e Proteção). **Desfazer** volta a escola para suspensa. Depois de 90 dias (`Tenants:ClosingRetentionDays`), **Destruir dados**, digitando o endereço da escola, apaga banco, papéis, bucket e segredos e destrói a chave Transit. Os backups antigos continuam com Saúde e Proteção cifrados por uma chave que não existe mais. Irreversível. |

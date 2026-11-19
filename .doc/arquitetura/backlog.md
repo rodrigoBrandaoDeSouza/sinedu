@@ -40,7 +40,7 @@ Legenda: 🔒 segurança bloqueante · 🧪 inclui teste de negação/isolamento
 | P-01 ✅ | Login no `painel.` (contas de plataforma, MFA obrigatório), papéis SUPER_ADMIN/SUPORTE | F1-05 |
 | P-02 ✅ | Escolas: listar, cadastrar (slug validado), acompanhar provisionamento, tentar de novo em caso de falha | P-01, F1-02 |
 | P-03 ✅ | Suspender/reativar escola, com motivo e auditoria | P-02 |
-| P-04 | Redes (cadastro e vínculo com escolas) | P-02 |
+| P-04 ✅ | Redes (cadastro, edição, exclusão só vazia, vínculo com escolas) — `NetworkTests` | P-02 |
 | P-05 ✅ | Migrations: versão de schema por escola, atualização em lote (tela em Escolas, comando `migrate-tenants`) | P-02 |
 | P-06 ✅ | Planos com valor mensal fixo por faixa de alunos ativos; pagante = APMF da escola (no contrato) | P-01 |
 | P-07 ✅ | Contratos: um vigente por escola, APMF pagante, vigência e dia de vencimento | P-06, P-02 |
@@ -49,7 +49,7 @@ Legenda: 🔒 segurança bloqueante · 🧪 inclui teste de negação/isolamento
 | P-10 🔒 ✅ | Métricas agregadas: view `metrics.v_counts` + papel `sinedu_metrics` + job noturno + tela | P-02 |
 | P-11 🔒🧪 ✅ | Acesso de suporte: pedido no painel → aprovação do Diretor na escola → papel temporário somente leitura → expiração/revogação. Login único só aceita conta da plataforma com liberação vigente; toda requisição auditada como `support_session`; métodos que mudam estado → 403 (`SupportAccessTests`) | P-01, F1-08 |
 | P-12 🔒 🟡 | Contas de plataforma, desbloqueio e reset de MFA de usuários (auditado, com aviso por e-mail) — pronto na plataforma; o registro também na auditoria da escola fica para o P-11 | P-01 |
-| P-13 | Encerramento de escola: exportação dos dados comuns, retenção, destruição de banco, bucket e chave | P-03 |
+| P-13 🔒🧪 ✅ | Encerramento de escola: modo encerramento (só a Direção baixa a exportação dos dados comuns, sem Saúde/Proteção), desfazer, destruição manual após 90 dias com o endereço digitado (banco, papéis, bucket, segredos e chave Transit) — `ClosureTests` | P-03 |
 | P-14 🔒🧪 ✅ | `PlatformPanelTests`: nenhum dado de aluno alcançável pelo painel | P-10, P-11 |
 
 ## Fase 2 — Cadastros e navegação

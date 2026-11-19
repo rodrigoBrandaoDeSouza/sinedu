@@ -65,6 +65,12 @@ public sealed class Tenant
 
     public DateTimeOffset? SuspendedAt { get; set; }
 
+    /// <summary>Início do encerramento (P-13): a destruição só é liberada depois do prazo de retenção.</summary>
+    public DateTimeOffset? ClosingStartedAt { get; set; }
+
+    /// <summary>Quando banco, anexos, segredos e chave foram destruídos.</summary>
+    public DateTimeOffset? ClosedAt { get; set; }
+
     public List<ProvisioningStep> ProvisioningSteps { get; set; } = [];
 
     /// <summary>Nomes derivados do slug (já validado): banco, chave e bucket próprios da escola.</summary>

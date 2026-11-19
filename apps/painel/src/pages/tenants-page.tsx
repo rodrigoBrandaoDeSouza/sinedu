@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Alert, api, ApiError, Badge, Button, Card, Dialog, EmptyState, Input, PageHeader, Select, Table, Td, Th, Tr } from "@sinedu/ui";
-import { Building2, DatabaseZap, ExternalLink, Mail, Pause, Play, Plus, RotateCw } from "lucide-react";
+import { Archive, Building2, DatabaseZap, ExternalLink, Flame, Mail, Pause, Play, Plus, RotateCw, Undo2 } from "lucide-react";
 import { SmtpDialog } from "../components/smtp-dialog";
 import { useState, type FormEvent } from "react";
 import { useSearchParams } from "react-router";
@@ -18,6 +18,9 @@ interface TenantSummary {
   statusReason: string | null;
   schemaVersion: string | null;
   createdAt: string;
+  closingStartedAt?: string | null;
+  destroyableAt?: string | null;
+  closedAt?: string | null;
 }
 
 interface NetworkRow {
@@ -61,12 +64,13 @@ export function TenantsPage() {
   });
 
   const action = useMutation({
-    mutationFn: ({ id, verb, reason }: { id: string; verb: "retry" | "suspend" | "reactivate"; reason?: string }) =>
+    mutationFn: ({ id, verb, reason }: { id: string; verb: "retry" | "suspend" | "reactivate" | "close" | "close/cancel"; reason?: string }) =>
       api.post(`/api/tenants/${id}/${verb}`, verb === "retry" ? undefined : { reason }),
     onSuccess: () => client.invalidateQueries({ queryKey: ["tenants"] }),
   });
 
-  const ask = (id: string, verb: "suspend" | "reactivate", label: string) => {
+  const [destroying, setDestroying] = useState<TenantSummary>();
+  const ask = (id: string, verb: "suspend" | "reactivate" | "close" | "close/cancel", label: string) => {
     const reason = prompt(`Motivo para ${label} (fica registrado na auditoria):`);
     if (reason?.trim()) action.mutate({ id, verb, reason });
   };
@@ -139,6 +143,9 @@ export function TenantsPage() {
                     <Badge tone={statusView[t.status].tone} icon>
                       {statusView[t.status].label}
                     </Badge>
+                    {t.status === "Closing" && t.destroyableAt ? (
+                      <p className="mt-1 text-xs text-muted-foreground">Dados guardados até {new Date(t.destroyableAt).toLocaleDateString("pt-BR")}</p>
+                    ) : null}
                     {t.statusReason && t.status !== "Active" ? (
                       <p className="mt-1 max-w-64 truncate text-xs text-muted-foreground" title={t.statusReason}>
                         {t.statusReason}
@@ -180,6 +187,37 @@ export function TenantsPage() {
                         Reativar
                       </Button>
                     ) : null}
+                    {superAdmin && (t.status === "Active" || t.status === "Suspended") ? (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          if (confirm(`Iniciar o encerramento de ${t.displayName}? A escola fecha para todos; só a Direção poderá baixar a exportação dos dados comuns. Os dados ficam guardados por 90 dias antes de poderem ser destruídos.`))
+                            ask(t.id, "close", "encerrar a escola");
+                        }}
+                      >
+                        <Archive />
+                        Encerrar
+                      </Button>
+                    ) : null}
+                    {superAdmin && t.status === "Closing" ? (
+                      <>
+                        <Button size="sm" variant="ghost" onClick={() => ask(t.id, "close/cancel", "desfazer o encerramento (a escola volta suspensa)")}>
+                          <Undo2 />
+                          Desfazer
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="danger"
+                          disabled={!t.destroyableAt || new Date(t.destroyableAt) > new Date()}
+                          title={t.destroyableAt && new Date(t.destroyableAt) > new Date() ? `Liberado em ${new Date(t.destroyableAt).toLocaleDateString("pt-BR")}` : "Destruir os dados da escola"}
+                          onClick={() => setDestroying(t)}
+                        >
+                          <Flame />
+                          Destruir dados
+                        </Button>
+                      </>
+                    ) : null}
                   </Td>
                 </Tr>
               ))}
@@ -190,7 +228,47 @@ export function TenantsPage() {
 
       <CreateTenantDialog open={creating} onClose={() => setCreating(false)} />
       {smtpFor ? <SmtpDialog tenant={smtpFor} onClose={() => setSmtpFor(undefined)} /> : null}
+      {destroying ? <DestroyDialog tenant={destroying} onClose={() => setDestroying(undefined)} /> : null}
     </>
+  );
+}
+
+/** P-13: destruição irreversível, confirmada digitando o endereço da escola. */
+function DestroyDialog({ tenant, onClose }: { tenant: TenantSummary; onClose: () => void }) {
+  const client = useQueryClient();
+  const [typed, setTyped] = useState("");
+  const destroy = useMutation({
+    mutationFn: () => api.post(`/api/tenants/${tenant.id}/destroy`, { confirmSlug: typed.trim() }),
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: ["tenants"] });
+      onClose();
+    },
+  });
+
+  return (
+    <Dialog
+      open
+      onClose={onClose}
+      title={`Destruir os dados de ${tenant.displayName}`}
+      footer={
+        <>
+          <Button onClick={onClose}>Cancelar</Button>
+          <Button variant="danger" disabled={typed.trim() !== tenant.slug || destroy.isPending} onClick={() => destroy.mutate()}>
+            <Flame />
+            {destroy.isPending ? "Destruindo…" : "Destruir definitivamente"}
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        <Alert tone="critical" title="Isto não pode ser desfeito.">
+          Apaga o banco de dados, os anexos e os segredos da escola e destrói a chave de criptografia. Saúde e Proteção/Sigilo ficam ilegíveis
+          também em qualquer backup antigo. Confirme que a escola já baixou a exportação dos dados comuns.
+        </Alert>
+        {destroy.error ? <Alert tone="critical" title={destroy.error instanceof ApiError ? destroy.error.message : "Não foi possível destruir."} /> : null}
+        <Input label={`Digite o endereço da escola (${tenant.slug}) para confirmar`} value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" />
+      </div>
+    </Dialog>
   );
 }
 

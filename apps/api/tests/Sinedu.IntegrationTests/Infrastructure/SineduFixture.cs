@@ -253,6 +253,12 @@ public sealed class SineduFixture : IAsyncLifetime
         await Sinedu.Platform.Metrics.MetricsCollector.EnsureRoleAsync(Vault, admin.ConnectionString, CancellationToken.None);
     }
 
+    /// <summary>Escola extra provisionada pelo código de produção (para testes que a encerram ou destroem).</summary>
+    public Task ProvisionExtraAsync(string slug, string name) => ProvisionAsync(slug, name);
+
+    /// <summary>Esquece o registro em cache no host da escola (a mudança de situação vale na próxima requisição).</summary>
+    public void ForgetTenant(string slug) => School.Services.GetRequiredService<IMemoryCache>().Remove($"tenant:{slug}");
+
     private async Task ProvisionAsync(string slug, string name)
     {
         await using var scope = Platform.Services.CreateAsyncScope();
