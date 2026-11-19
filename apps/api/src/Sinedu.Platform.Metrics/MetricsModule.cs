@@ -31,6 +31,7 @@ public sealed class MetricsModule : IModule
         var connectionString = configuration.GetConnectionString("Platform") ?? throw new InvalidOperationException("ConnectionStrings:Platform ausente.");
         services.AddDbContext<MetricsDbContext>(o => o.UseSineduPostgres(connectionString, MetricsDbContext.Schema));
         services.AddScoped<MetricsCollector>();
+        services.AddScoped<StudentCounts>();
         services.AddHostedService<MetricsWorker>();
     }
 

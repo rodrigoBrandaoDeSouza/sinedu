@@ -142,3 +142,19 @@ public sealed class MetricsCollector(MetricsDbContext db, TenantsDbContext tenan
         return active.Count;
     }
 }
+
+/// <summary>Última contagem de alunos ativos por escola (só o número). Contrato público usado pela cobrança (P-08).</summary>
+public sealed record StudentCount(int ActiveStudents, DateTimeOffset CollectedAt);
+
+public sealed class StudentCounts(MetricsDbContext db)
+{
+    public async Task<Dictionary<Guid, StudentCount>> LatestAsync(CancellationToken ct)
+    {
+        var rows = await db.Snapshots.AsNoTracking()
+            .Where(s => s.Error == null)
+            .Where(s => db.Snapshots.Where(x => x.TenantId == s.TenantId && x.Error == null).Max(x => x.CollectedAt) == s.CollectedAt)
+            .Select(s => new { s.TenantId, s.ActiveStudents, s.CollectedAt })
+            .ToListAsync(ct);
+        return rows.GroupBy(r => r.TenantId).ToDictionary(g => g.Key, g => new StudentCount(g.First().ActiveStudents, g.First().CollectedAt));
+    }
+}

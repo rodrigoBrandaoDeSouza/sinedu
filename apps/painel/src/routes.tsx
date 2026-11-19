@@ -7,6 +7,8 @@ import { OverviewPage } from "./pages/overview-page";
 import { SettingsPage } from "./pages/settings-page";
 import { SupportPage } from "./pages/support-page";
 import { TenantsPage } from "./pages/tenants-page";
+import { ContractsPage } from "./pages/contracts-page";
+import { InvoicesPage } from "./pages/invoices-page";
 
 const soon = (path: string, title: string, description: string, backlog: string): RouteObject => ({
   path,
@@ -21,8 +23,8 @@ export const routes: RouteObject[] = [
       { path: "escolas", element: <TenantsPage /> },
       soon("redes", "Redes", "Agrupamento de escolas por rede estadual ou municipal.", "P-04"),
       { path: "suporte", element: <SupportPage /> },
-      soon("contratos", "Contratos", "Pagantes, escolas cobertas, vigência e empenho.", "P-07"),
-      soon("faturas", "Faturas", "Lançamento, baixa manual e nota fiscal.", "P-08"),
+      { path: "contratos", element: <ContractsPage /> },
+      { path: "faturas", element: <InvoicesPage /> },
       soon("auditoria", "Auditoria", "Ações realizadas no painel da plataforma.", "F1-09"),
       { path: "contas", element: <AccountsPage /> },
       { path: "teste-email", element: <EmailTestPage /> },

@@ -42,10 +42,10 @@ Legenda: 🔒 segurança bloqueante · 🧪 inclui teste de negação/isolamento
 | P-03 ✅ | Suspender/reativar escola, com motivo e auditoria | P-02 |
 | P-04 | Redes (cadastro e vínculo com escolas) | P-02 |
 | P-05 ✅ | Migrations: versão de schema por escola, atualização em lote (tela em Escolas, comando `migrate-tenants`) | P-02 |
-| P-06 | Planos e pagantes | P-01 |
-| P-07 | Contratos (escolas cobertas, vigência, empenho) | P-06, P-02 |
-| P-08 | Faturas: lançamento, baixa manual, NF | P-07 |
-| P-09 | Alertas de cobrança (job diário): fatura vencida, contrato vencendo, limite excedido | P-08 |
+| P-06 ✅ | Planos com valor mensal fixo por faixa de alunos ativos; pagante = APMF da escola (no contrato) | P-01 |
+| P-07 ✅ | Contratos: um vigente por escola, APMF pagante, vigência e dia de vencimento | P-06, P-02 |
+| P-08 ✅ | Faturas mensais geradas sozinhas (idempotente, com a contagem e a faixa usadas), baixa manual, NF opcional, cancelamento com motivo — `BillingTests` | P-07 |
+| P-09 ✅ | Alertas de cobrança calculados na hora: fatura vencida, contrato vencendo/vencido, escola sem contrato, acima da última faixa. SUPORTE só vê | P-08 |
 | P-10 🔒 ✅ | Métricas agregadas: view `metrics.v_counts` + papel `sinedu_metrics` + job noturno + tela | P-02 |
 | P-11 🔒🧪 ✅ | Acesso de suporte: pedido no painel → aprovação do Diretor na escola → papel temporário somente leitura → expiração/revogação. Login único só aceita conta da plataforma com liberação vigente; toda requisição auditada como `support_session`; métodos que mudam estado → 403 (`SupportAccessTests`) | P-01, F1-08 |
 | P-12 🔒 🟡 | Contas de plataforma, desbloqueio e reset de MFA de usuários (auditado, com aviso por e-mail) — pronto na plataforma; o registro também na auditoria da escola fica para o P-11 | P-01 |

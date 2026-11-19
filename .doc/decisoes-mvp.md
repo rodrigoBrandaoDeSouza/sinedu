@@ -133,6 +133,13 @@ Interpretações feitas na arquitetura. Valem como padrão até serem confirmada
 - O papel `sinedu_metrics` (senha gerada no Vault pela plataforma no `migrate`) só tem `CONNECT` e `SELECT` nessa view. O teste confirma que ele não lê nenhuma tabela.
 - **Coleta:** a cada 6 horas (`Metrics:Worker`), ou pelo botão "Coletar agora" (SUPER_ADMIN). Guardamos uma foto por escola a cada coleta, para a evolução de alunos ativos.
 - **Atualização de escolas (P-05):** a página Escolas avisa quando há banco desatualizado (escola em manutenção) e o SUPER_ADMIN atualiza todas em lote.
+- **Cobrança (P-06..P-09, D16), definida com o responsável do produto:**
+  - **Plano:** valor mensal fixo por faixa de alunos ativos. A contagem vem da métrica agregada da escola, só o número.
+  - **Pagante:** a APMF de cada escola, registrada no contrato da escola. Há um contrato vigente por escola.
+  - **Fatura:** mensal, gerada sozinha para cada contrato vigente. Guarda a contagem e a faixa usadas. A baixa é manual.
+  - **Nota fiscal:** só o registro do número e da data, opcional. Não há integração com emissor.
+  - **Alertas:** aparecem no painel. Suspender uma escola continua sendo decisão manual.
+  - **Permissões:** SUPER_ADMIN gerencia tudo; SUPORTE só vê os alertas.
 - **Acesso de suporte (P-11, D17):**
   - O suporte pede no painel (escola, motivo e 1 a 24 h). Um pedido em aberto por pessoa e escola.
   - A escola busca os pedidos na plataforma a cada minuto e avisa os diretores por e-mail.

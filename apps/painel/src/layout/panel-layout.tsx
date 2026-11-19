@@ -4,7 +4,7 @@ import { Outlet } from "react-router";
 import { useSession } from "../lib/session";
 import { SessionProvider } from "../lib/session-provider";
 
-const sections: NavSection[] = [
+const sectionsFor = (superAdmin: boolean): NavSection[] => [
   { items: [{ to: "/", label: "Visão geral", icon: Gauge, end: true }] },
   {
     title: "Plataforma",
@@ -17,8 +17,9 @@ const sections: NavSection[] = [
   {
     title: "Financeiro",
     items: [
-      { to: "/contratos", label: "Contratos", icon: FileText },
-      { to: "/faturas", label: "Faturas", icon: Receipt },
+      // Planos/contratos só para SUPER_ADMIN; SUPORTE vê os alertas em Faturas.
+      ...(superAdmin ? [{ to: "/contratos", label: "Planos e contratos", icon: FileText }] : []),
+      { to: "/faturas", label: superAdmin ? "Faturas" : "Alertas de cobrança", icon: Receipt },
     ],
   },
   {
@@ -48,6 +49,7 @@ export function PanelLayout() {
 
 function PanelShell() {
   const me = useSession();
+  const sections = sectionsFor(me.roles.includes("SUPER_ADMIN"));
   return (
     <AppShell
       brand={{

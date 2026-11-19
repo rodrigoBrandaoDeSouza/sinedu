@@ -246,6 +246,7 @@ public sealed class SineduFixture : IAsyncLifetime
         await identity.Database.MigrateAsync();
         await using (var metrics = PlatformDb<Sinedu.Platform.Metrics.MetricsDbContext>(Sinedu.Platform.Metrics.MetricsDbContext.Schema)) await metrics.Database.MigrateAsync();
         await using (var support = PlatformDb<Sinedu.Platform.Support.SupportDbContext>(Sinedu.Platform.Support.SupportDbContext.Schema)) await support.Database.MigrateAsync();
+        await using (var billing = PlatformDb<Sinedu.Platform.Billing.BillingDbContext>(Sinedu.Platform.Billing.BillingDbContext.Schema)) await billing.Database.MigrateAsync();
 
         // Papel de métricas antes de provisionar as escolas (como o `migrate` de produção), para os GRANTs da view.
         var admin = new NpgsqlConnectionStringBuilder(PlatformConnectionString) { Database = "postgres" };
@@ -288,6 +289,7 @@ public sealed class SineduFixture : IAsyncLifetime
             ["Notifications:RetryWorker"] = "false",
             ["Metrics:Worker"] = "false",
             ["Support:Worker"] = "false",
+            ["Billing:Worker"] = "false",
             ["Oidc:TenantClientSecret"] = "test-escola-client-secret-0123456789abcdef",
             ["Oidc:PanelClientSecret"] = "test-painel-client-secret-0123456789abcdef",
         };

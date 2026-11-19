@@ -62,12 +62,16 @@ erDiagram
 
 | Tabela | Colunas principais | Observações |
 |--------|-------------------|-------------|
-| `plans` | name, pricing_model (`fixo`/`por_aluno`), price, max_students, max_storage_gb, is_active | Limites geram alerta, não bloqueio, no MVP. |
-| `billing_parties` | name, document (CNPJ), kind (`orgao_publico`/`escola`/`outro`), contact_name, contact_email, address | O pagante. |
-| `contracts` | billing_party_id, plan_id, code, process_number, commitment_number (empenho), starts_on, ends_on, total_value, status (`rascunho`/`vigente`/`encerrado`/`cancelado`), notes | |
-| `contract_tenants` | contract_id, tenant_id, starts_on, ends_on | Um contrato cobre uma ou mais escolas. |
-| `invoices` | contract_id, reference_month, amount, due_on, status (`aberta`/`paga`/`vencida`/`cancelada`), invoice_number (NF), paid_on, paid_amount, notes | Baixa manual. |
-| `billing_alerts` | kind (`fatura_vencida`/`contrato_vencendo`/`limite_excedido`), tenant_id, contract_id, invoice_id, created_at, acknowledged_by, acknowledged_at | |
+Schema `billing` (implementado no P-06..P-09, conforme as decisões de cobrança):
+
+| Tabela | Colunas principais | Observações |
+|--------|-------------------|-------------|
+| `plans` | name (único), is_active | Valor fixo por faixa de alunos ativos. |
+| `plan_tiers` | plan_id, up_to_students (nulo = "acima de"), monthly_price | Só a última faixa pode ser aberta. |
+| `contracts` | tenant_id, plan_id, payer_name, payer_document (CNPJ), payer_contact_name, payer_email, payer_phone, starts_on, ends_on, due_day (1–28), status (`Active`/`Ended`/`Cancelled`), notes | Pagante = APMF da escola. Um contrato ativo por escola no período. |
+| `invoices` | contract_id, tenant_id, reference_month, students, tier_label, amount, due_on, status (`Open`/`Paid`/`Cancelled`), invoice_number, issued_on, paid_on, paid_amount, notes | Uma válida por contrato e mês (cancelada pode ser gerada de novo). "Vencida" é calculada. Guarda a contagem e a faixa usadas. |
+
+Alertas não têm tabela: são calculados na consulta (fatura vencida, contrato vencendo/vencido, escola sem contrato, acima da última faixa).
 
 ### Suporte e auditoria
 

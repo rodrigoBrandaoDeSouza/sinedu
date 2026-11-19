@@ -2,6 +2,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Sinedu.SharedKernel\Sinedu.SharedKernel.csproj" />
+    <ProjectReference Include="..\Sinedu.Platform.Tenants\Sinedu.Platform.Tenants.csproj" />
+    <ProjectReference Include="..\Sinedu.Platform.Metrics\Sinedu.Platform.Metrics.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

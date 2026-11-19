@@ -129,4 +129,43 @@ describe("Painel da plataforma", () => {
     expect(screen.queryByRole("button", { name: /nova escola/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /suspender/i })).not.toBeInTheDocument();
   });
+
+  // Cobrança (P-06..P-09). Valores FICTÍCIOS.
+  const alerts = [{ kind: "fatura_vencida", tenantId: "1", school: "Colégio Estadual Demonstração", message: "Fatura de 10/2026 vencida em 10/10/2026 (40 dia(s)).", contractId: "c1", invoiceId: "i1" }];
+  const invoice = {
+    id: "i1", contractId: "c1", school: "Colégio Estadual Demonstração", payer: "APMF do Colégio (fictícia)", referenceMonth: "2026-10", students: 1031,
+    tierLabel: "301 a 1200 alunos", amount: 1250.5, dueOn: "2026-10-10", status: "Overdue", invoiceNumber: null, issuedOn: null, paidOn: null, paidAmount: null, notes: null,
+  };
+
+  it("super admin vê faturas com valor em centavos, faixa e baixa", async () => {
+    signedInAs(["SUPER_ADMIN"], [], { "/api/billing/alerts": alerts, "/api/billing/invoices": [invoice] });
+    renderAt("/faturas");
+
+    expect(await screen.findByText("Fatura de 10/2026 vencida em 10/10/2026 (40 dia(s)).")).toBeInTheDocument();
+    expect(await screen.findByText("301 a 1200 alunos")).toBeInTheDocument();
+    expect(screen.getAllByText(/1\.250,50/).length).toBeGreaterThan(0);
+    expect(screen.getByRole("button", { name: /baixa/i })).toBeInTheDocument();
+  });
+
+  it("suporte só vê os alertas de cobrança", async () => {
+    signedInAs(["SUPORTE"], [], { "/api/billing/alerts": alerts, "/api/billing/invoices": [invoice] });
+    renderAt("/faturas");
+
+    expect(await screen.findByText("Fatura de 10/2026 vencida em 10/10/2026 (40 dia(s)).")).toBeInTheDocument();
+    expect(screen.queryByText("301 a 1200 alunos")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /gerar faturas/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /planos e contratos/i })).not.toBeInTheDocument();
+  });
+
+  it("planos mostram as faixas com o valor mensal", async () => {
+    signedInAs(["SUPER_ADMIN"], [], {
+      "/api/billing/plans": [{ id: "p1", name: "Padrão", isActive: true, contracts: 1, tiers: [{ upToStudents: 300, monthlyPrice: 500 }, { upToStudents: null, monthlyPrice: 900 }] }],
+      "/api/billing/contracts": [],
+    });
+    renderAt("/contratos");
+
+    expect(await screen.findByText("Padrão")).toBeInTheDocument();
+    expect(screen.getByText("1 a 300 alunos")).toBeInTheDocument();
+    expect(screen.getByText("Acima de 300 alunos")).toBeInTheDocument();
+  });
 });
