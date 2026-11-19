@@ -38,20 +38,35 @@ internal static class SessionEndpoints
             return Results.SignOut(new AuthenticationProperties { RedirectUri = "/" }, [SchoolSchemes.Cookie, SchoolSchemes.Oidc]);
         }).AllowAnonymous();
 
-        endpoints.MapGet("/api/me", (ClaimsPrincipal user, TenantScope tenant, IOptions<SineduUrls> urls) => Results.Ok(new
+        endpoints.MapGet("/api/me", async (ClaimsPrincipal user, TenantScope tenant, IOptions<SineduUrls> urls, AccessDbContext db, CancellationToken ct) =>
         {
-            user = new
+            var roles = user.FindAll(SchoolClaims.Role).Select(c => c.Value).ToList();
+
+            // Sessão de suporte (P-11): a SPA mostra até quando o acesso vale.
+            DateTimeOffset? supportUntil = null;
+            if (SupportSession.IsSupportOnly(roles) && Guid.TryParse(user.FindFirstValue(SchoolClaims.Subject), out var userId))
             {
-                id = user.FindFirstValue(SchoolClaims.Subject),
-                name = user.FindFirstValue(SchoolClaims.Name),
-                email = user.FindFirstValue(SchoolClaims.Email),
-            },
-            roles = user.FindAll(SchoolClaims.Role).Select(c => c.Value),
-            school = new { slug = tenant.Current.Slug, name = tenant.Current.DisplayName },
-            mfa = SchoolClaims.HasMfa(user),
-            authTime = SchoolClaims.AuthTimeOf(user),
-            accountUrl = urls.Value.AccountUrl,
-        }));
+                supportUntil = await db.Roles.AsNoTracking()
+                    .Where(r => r.UserId == userId && r.Role == Roles.PlatformSupport && r.RevokedAt == null)
+                    .MaxAsync(r => r.ExpiresAt, ct);
+            }
+
+            return Results.Ok(new
+            {
+                user = new
+                {
+                    id = user.FindFirstValue(SchoolClaims.Subject),
+                    name = user.FindFirstValue(SchoolClaims.Name),
+                    email = user.FindFirstValue(SchoolClaims.Email),
+                },
+                roles,
+                school = new { slug = tenant.Current.Slug, name = tenant.Current.DisplayName },
+                mfa = SchoolClaims.HasMfa(user),
+                authTime = SchoolClaims.AuthTimeOf(user),
+                accountUrl = urls.Value.AccountUrl,
+                supportUntil,
+            });
+        });
 
         // Usado pela SPA e pelos testes para confirmar a autenticação forte recente antes de abrir áreas sensíveis.
         endpoints.MapGet("/api/security/step-up", () => Results.NoContent()).RequireAuthorization(Policies.RecentStrongAuth);

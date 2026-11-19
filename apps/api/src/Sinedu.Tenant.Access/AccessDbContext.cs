@@ -89,6 +89,55 @@ public sealed class UserSession
     public string? UserAgent { get; set; }
 }
 
+public enum SupportGrantStatus
+{
+    Pending,
+    Approved,
+    Denied,
+    Revoked,
+    /// <summary>Retirado pelo suporte antes da decisão.</summary>
+    Cancelled,
+}
+
+/// <summary>
+/// Liberação de acesso de suporte nesta escola (P-11, D17). O id é o do pedido na plataforma.
+/// Aprovada só pelo Diretor; vira o papel temporário SUPORTE_PLATAFORMA (somente leitura, até 24 h).
+/// </summary>
+public sealed class SupportAccessGrant
+{
+    public Guid Id { get; set; }
+
+    /// <summary>Conta da plataforma que pediu (o "sub" do login único).</summary>
+    public Guid UserId { get; set; }
+
+    public required string RequesterName { get; set; }
+
+    public required string RequesterEmail { get; set; }
+
+    public required string Reason { get; set; }
+
+    public int DurationHours { get; set; }
+
+    public SupportGrantStatus Status { get; set; }
+
+    public DateTimeOffset RequestedAt { get; set; }
+
+    /// <summary>Quando os diretores foram avisados por e-mail do pedido.</summary>
+    public DateTimeOffset? NotifiedAt { get; set; }
+
+    public Guid? DecidedBy { get; set; }
+
+    public DateTimeOffset? DecidedAt { get; set; }
+
+    public DateTimeOffset? ExpiresAt { get; set; }
+
+    public Guid? RevokedBy { get; set; }
+
+    public DateTimeOffset? RevokedAt { get; set; }
+
+    public bool IsActive(DateTimeOffset now) => Status == SupportGrantStatus.Approved && ExpiresAt > now;
+}
+
 public sealed class AccessDbContext(DbContextOptions<AccessDbContext> options) : DbContext(options)
 {
     public const string Schema = "access";
@@ -100,6 +149,8 @@ public sealed class AccessDbContext(DbContextOptions<AccessDbContext> options) :
     public DbSet<ClassroomAccessGrant> ClassroomGrants => Set<ClassroomAccessGrant>();
 
     public DbSet<UserSession> Sessions => Set<UserSession>();
+
+    public DbSet<SupportAccessGrant> SupportGrants => Set<SupportAccessGrant>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -125,6 +176,17 @@ public sealed class AccessDbContext(DbContextOptions<AccessDbContext> options) :
         {
             e.ToTable("classroom_access_grants");
             e.HasIndex(x => new { x.UserId, x.ClassroomId }).IsUnique().HasFilter("revoked_at IS NULL");
+        });
+
+        modelBuilder.Entity<SupportAccessGrant>(e =>
+        {
+            e.ToTable("support_access_grants");
+            e.Property(x => x.Id).ValueGeneratedNever();
+            e.Property(x => x.RequesterName).HasMaxLength(200);
+            e.Property(x => x.RequesterEmail).HasMaxLength(254);
+            e.Property(x => x.Reason).HasMaxLength(500);
+            e.Property(x => x.Status).HasConversion<string>().HasMaxLength(20);
+            e.HasIndex(x => x.Status);
         });
 
         modelBuilder.Entity<UserSession>(e =>

@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Sinedu.Platform.Identity.Security;
+using Sinedu.SharedKernel.Tenancy;
 using Sinedu.SharedKernel.Web;
 
 namespace Sinedu.Platform.Identity;
@@ -135,7 +136,7 @@ internal static class AccountEndpoints
         return Results.Ok(new { status = "signed_in", recoveryCodes = codes });
     }
 
-    private static async Task<IResult> SessionAsync(HttpContext ctx, IdentityDbContext db, IOptions<SineduUrls> urls, CancellationToken ct)
+    private static async Task<IResult> SessionAsync(HttpContext ctx, IdentityDbContext db, IOptions<SineduUrls> urls, ISupportAccessDirectory support, CancellationToken ct)
     {
         var pending = await ctx.AuthenticateAsync(AccountSchemes.Pending);
         var session = await ctx.AuthenticateAsync(AccountSchemes.Session);
@@ -148,12 +149,16 @@ internal static class AccountEndpoints
             .FirstOrDefaultAsync(u => u.Id == userId, ct);
         if (user is null) return Results.Ok(new { authenticated = false });
 
+        // Conta da plataforma: escolas com liberação de suporte vigente (D17), com o prazo.
+        var grants = user.Kind == AccountKind.Platform ? await support.ActiveGrantsAsync(user.Id, ct) : [];
+
         return Results.Ok(new
         {
             authenticated = true,
             user = new { user.Id, user.Email, user.FullName, user.MfaEnabled, kind = user.Kind.ToString() },
             schools = user.Memberships.Where(m => m.Active).OrderBy(m => m.TenantName)
-                .Select(m => new { slug = m.TenantSlug, name = m.TenantName, url = urls.Value.TenantUrl(m.TenantSlug) }),
+                .Select(m => new { slug = m.TenantSlug, name = m.TenantName, url = urls.Value.TenantUrl(m.TenantSlug), supportUntil = (DateTimeOffset?)null })
+                .Concat(grants.Select(g => new { slug = g.TenantSlug, name = g.TenantName, url = urls.Value.TenantUrl(g.TenantSlug), supportUntil = (DateTimeOffset?)g.ExpiresAt })),
             panel = user.Kind == AccountKind.Platform && user.PlatformRoles.Any(r => r.RevokedAt == null) ? urls.Value.PanelUrl : null,
         });
     }

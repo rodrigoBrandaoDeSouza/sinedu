@@ -1,4 +1,4 @@
-import { AppShell, Button, postNavigate, ThemeToggle, type NavSection } from "@sinedu/ui";
+import { Alert, AppShell, Button, postNavigate, ThemeToggle, type NavSection } from "@sinedu/ui";
 import {
   Bell,
   BookOpenCheck,
@@ -7,6 +7,7 @@ import {
   ClipboardList,
   FileBarChart,
   GraduationCap,
+  Headset,
   HeartPulse,
   LayoutDashboard,
   LogOut,
@@ -85,6 +86,7 @@ function SchoolShell() {
         ...(config
           ? [
               { to: "/usuarios", label: "Usuários e acessos", icon: Users },
+              { to: "/suporte", label: "Acesso de suporte", icon: Headset },
               { to: "/administracao", label: "Administração", icon: Settings },
             ]
           : []),
@@ -145,6 +147,12 @@ function SchoolShell() {
         </div>
       }
     >
+      {me.supportUntil ? (
+        <Alert tone="warning" title="Acesso de suporte (somente leitura)" className="mb-6">
+          Liberado pela Direção da escola até {new Date(me.supportUntil).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}. Tudo o que você
+          abre fica registrado para a escola.
+        </Alert>
+      ) : null}
       <Outlet />
     </AppShell>
   );

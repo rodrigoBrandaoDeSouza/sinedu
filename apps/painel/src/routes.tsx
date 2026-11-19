@@ -5,6 +5,7 @@ import { AccountsPage } from "./pages/accounts-page";
 import { EmailTestPage } from "./pages/email-test-page";
 import { OverviewPage } from "./pages/overview-page";
 import { SettingsPage } from "./pages/settings-page";
+import { SupportPage } from "./pages/support-page";
 import { TenantsPage } from "./pages/tenants-page";
 
 const soon = (path: string, title: string, description: string, backlog: string): RouteObject => ({
@@ -19,7 +20,7 @@ export const routes: RouteObject[] = [
       { index: true, element: <OverviewPage /> },
       { path: "escolas", element: <TenantsPage /> },
       soon("redes", "Redes", "Agrupamento de escolas por rede estadual ou municipal.", "P-04"),
-      soon("suporte", "Acessos de suporte", "Pedidos de acesso temporário, aprovados pelo diretor da escola.", "P-11"),
+      { path: "suporte", element: <SupportPage /> },
       soon("contratos", "Contratos", "Pagantes, escolas cobertas, vigência e empenho.", "P-07"),
       soon("faturas", "Faturas", "Lançamento, baixa manual e nota fiscal.", "P-08"),
       soon("auditoria", "Auditoria", "Ações realizadas no painel da plataforma.", "F1-09"),

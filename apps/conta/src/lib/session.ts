@@ -6,7 +6,7 @@ export interface SessionInfo {
   authenticated: boolean;
   pendingStage?: PendingStage;
   user?: { id: string; email: string; fullName: string; mfaEnabled: boolean; kind: string };
-  schools?: { slug: string; name: string; url: string }[];
+  schools?: { slug: string; name: string; url: string; supportUntil?: string | null }[];
   panel?: string | null;
 }
 

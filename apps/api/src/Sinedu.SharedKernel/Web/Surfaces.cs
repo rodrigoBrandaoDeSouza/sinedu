@@ -33,6 +33,9 @@ public static class Policies
     public const string PlatformSuperAdmin = "platform:super-admin";
     public const string PlatformStaff = "platform:staff";
 
+    /// <summary>API interna serviço→serviço (escola → plataforma), token client_credentials com escopo de vínculos.</summary>
+    public const string PlatformInternal = "internal:vinculos";
+
     // Escola
     public const string SchoolMember = "school:member";
     public const string SchoolManager = "school:manager";

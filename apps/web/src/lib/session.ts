@@ -9,6 +9,8 @@ export interface Me {
   mfa: boolean;
   authTime: string | null;
   accountUrl: string;
+  /** Sessão de suporte da plataforma (P-11): até quando o acesso liberado pela Direção vale. */
+  supportUntil?: string | null;
 }
 
 export const roleLabels: Record<SchoolRole, string> = {

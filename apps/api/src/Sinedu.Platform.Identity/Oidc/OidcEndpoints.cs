@@ -36,6 +36,7 @@ internal static class OidcEndpoints
         HostClassifier classifier,
         IOptions<SineduUrls> urls,
         IAuditLog audit,
+        ISupportAccessDirectory support,
         TimeProvider clock)
     {
         var request = ctx.GetOpenIddictServerRequest() ?? throw new InvalidOperationException("Requisição OIDC ausente.");
@@ -68,14 +69,20 @@ internal static class OidcEndpoints
             tenantSlug = OidcClients.TenantSlugFromRedirect(request.RedirectUri, urls.Value, classifier, OidcClients.CallbackPath)!;
             var tenant = await tenants.FindBySlugAsync(tenantSlug);
             var membership = tenant is null ? null : user.Memberships.FirstOrDefault(m => m.TenantId == tenant.Id && m.Active);
-            if (membership is null)
+
+            // D17/D19: conta da plataforma nunca tem vínculo de escola; só entra com liberação do Diretor vigente.
+            var supportGrant = tenant is not null && membership is null && user.Kind == AccountKind.Platform
+                ? await support.ActiveGrantAsync(user.Id, tenant.Id)
+                : null;
+
+            if (membership is null && supportGrant is null)
             {
                 await audit.WriteAsync(new AuditEntry("sso_denied", AuditResult.Denied, "tenant", tenant?.Id.ToString(), UserId: user.Id));
                 return Results.Redirect($"/sem-acesso?escola={Uri.EscapeDataString(tenantSlug)}");
             }
 
-            // Papel privilegiado concedido depois do login: exige MFA antes de seguir.
-            if (membership.Privileged && !hasMfa)
+            // Papel privilegiado concedido depois do login: exige MFA antes de seguir (suporte sempre é privilegiado).
+            if ((supportGrant is not null || membership!.Privileged) && !hasMfa)
             {
                 await ctx.SignOutAsync(AccountSchemes.Session);
                 return RedirectToLogin(ctx, reauth: true);

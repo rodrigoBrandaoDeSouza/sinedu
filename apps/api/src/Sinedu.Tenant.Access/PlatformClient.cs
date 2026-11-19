@@ -9,12 +9,25 @@ namespace Sinedu.Tenant.Access;
 
 public sealed record PlatformInviteResult(Guid? UserId, bool PlatformAccount);
 
+/// <summary>Pedido de suporte como a plataforma o devolve (sem dados de aluno).</summary>
+public sealed record PlatformSupportRequest(
+    Guid Id, Guid UserId, string RequesterName, string RequesterEmail, string Reason, int DurationHours,
+    string Status, DateTimeOffset CreatedAt, DateTimeOffset? ExpiresAt);
+
 /// <summary>Chamadas à API interna da plataforma (convites e vínculos), autenticadas por client_credentials.</summary>
 public interface IPlatformMemberships
 {
     Task<PlatformInviteResult> InviteAsync(string tenantSlug, string email, string fullName, bool privileged, CancellationToken ct);
 
     Task SyncAsync(string tenantSlug, Guid userId, bool active, bool privileged, CancellationToken ct);
+
+    /// <summary>Pedidos de suporte desta escola (P-11).</summary>
+    Task<IReadOnlyList<PlatformSupportRequest>> SupportRequestsAsync(string tenantSlug, CancellationToken ct);
+
+    /// <summary>Registra a decisão do Diretor. Nulo se o pedido não está mais pendente.</summary>
+    Task<PlatformSupportRequest?> DecideSupportAsync(string tenantSlug, Guid requestId, bool approve, string decidedBy, CancellationToken ct);
+
+    Task RevokeSupportAsync(string tenantSlug, Guid requestId, string revokedBy, CancellationToken ct);
 }
 
 internal sealed class PlatformMembershipsClient(HttpClient http, IOptions<SineduUrls> urls, IConfiguration configuration, TimeProvider clock)
@@ -44,11 +57,43 @@ internal sealed class PlatformMembershipsClient(HttpClient http, IOptions<Sinedu
         response.EnsureSuccessStatusCode();
     }
 
-    private async Task<HttpRequestMessage> NewRequestAsync(string path, object body, CancellationToken ct)
+    public async Task<IReadOnlyList<PlatformSupportRequest>> SupportRequestsAsync(string tenantSlug, CancellationToken ct)
     {
-        var request = new HttpRequestMessage(HttpMethod.Post, new Uri(urls.Value.AccountUrl, path))
+        using var request = await NewRequestAsync($"api/internal/support-requests?tenantSlug={Uri.EscapeDataString(tenantSlug)}", null, ct);
+        using var response = await http.SendAsync(request, ct);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<List<PlatformSupportRequest>>(ct) ?? [];
+    }
+
+    public async Task<PlatformSupportRequest?> DecideSupportAsync(string tenantSlug, Guid requestId, bool approve, string decidedBy, CancellationToken ct)
+    {
+        using var request = await NewRequestAsync($"api/internal/support-requests/{requestId}/decision", new { tenantSlug, approve, decidedBy }, ct);
+        using var response = await http.SendAsync(request, ct);
+        if (response.StatusCode is System.Net.HttpStatusCode.Conflict or System.Net.HttpStatusCode.NotFound)
         {
-            Content = JsonContent.Create(body),
+            return null;
+        }
+
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<PlatformSupportRequest>(ct);
+    }
+
+    public async Task RevokeSupportAsync(string tenantSlug, Guid requestId, string revokedBy, CancellationToken ct)
+    {
+        using var request = await NewRequestAsync($"api/internal/support-requests/{requestId}/revoke", new { tenantSlug, revokedBy }, ct);
+        using var response = await http.SendAsync(request, ct);
+        // Já revogado/expirado na plataforma: a escola revoga localmente do mesmo jeito.
+        if (response.StatusCode is not (System.Net.HttpStatusCode.Conflict or System.Net.HttpStatusCode.NotFound))
+        {
+            response.EnsureSuccessStatusCode();
+        }
+    }
+
+    private async Task<HttpRequestMessage> NewRequestAsync(string path, object? body, CancellationToken ct)
+    {
+        var request = new HttpRequestMessage(body is null ? HttpMethod.Get : HttpMethod.Post, new Uri(urls.Value.AccountUrl, path))
+        {
+            Content = body is null ? null : JsonContent.Create(body),
         };
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await GetTokenAsync(ct));
         return request;

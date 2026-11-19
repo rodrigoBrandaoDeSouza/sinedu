@@ -1,5 +1,7 @@
 using System.Collections.Concurrent;
 using System.Security.Cryptography;
+using Microsoft.Extensions.DependencyInjection;
+using Sinedu.Platform.Support;
 using Sinedu.SharedKernel.Email;
 using Sinedu.SharedKernel.Secrets;
 using Sinedu.SharedKernel.Storage;
@@ -184,4 +186,30 @@ public sealed class FakePlatformMemberships : IPlatformMemberships
         Synced.Enqueue((userId, active, privileged));
         return Task.CompletedTask;
     }
+
+    /// <summary>Serviços do host da plataforma de teste: os pedidos de suporte usam o serviço real (P-11).</summary>
+    public Func<IServiceProvider>? PlatformServices { get; set; }
+
+    public async Task<IReadOnlyList<PlatformSupportRequest>> SupportRequestsAsync(string tenantSlug, CancellationToken ct)
+    {
+        await using var scope = PlatformServices!().CreateAsyncScope();
+        var rows = await scope.ServiceProvider.GetRequiredService<SupportRequests>().ForTenantAsync(tenantSlug, ct);
+        return rows.Select(Map).ToList();
+    }
+
+    public async Task<PlatformSupportRequest?> DecideSupportAsync(string tenantSlug, Guid requestId, bool approve, string decidedBy, CancellationToken ct)
+    {
+        await using var scope = PlatformServices!().CreateAsyncScope();
+        var (_, request) = await scope.ServiceProvider.GetRequiredService<SupportRequests>().DecideAsync(tenantSlug, requestId, approve, decidedBy, ct);
+        return request is null ? null : Map(request);
+    }
+
+    public async Task RevokeSupportAsync(string tenantSlug, Guid requestId, string revokedBy, CancellationToken ct)
+    {
+        await using var scope = PlatformServices!().CreateAsyncScope();
+        await scope.ServiceProvider.GetRequiredService<SupportRequests>().RevokeAsync(tenantSlug, requestId, revokedBy, ct);
+    }
+
+    private static PlatformSupportRequest Map(TenantSupportRequest r) =>
+        new(r.Id, r.UserId, r.RequesterName, r.RequesterEmail, r.Reason, r.DurationHours, r.Status, r.CreatedAt, r.ExpiresAt);
 }

@@ -264,8 +264,15 @@ public static class SchoolAuthentication
             await db.SaveChangesAsync();
         }
 
-        var identity = new ClaimsIdentity(principal.Claims.Where(c => c.Type != SchoolClaims.Role), SchoolSchemes.Cookie, SchoolClaims.Name, SchoolClaims.Role);
+        var identity = new ClaimsIdentity(
+            principal.Claims.Where(c => c.Type != SchoolClaims.Role && c.Type != AuditLog.SupportSessionClaim), SchoolSchemes.Cookie, SchoolClaims.Name, SchoolClaims.Role);
         identity.AddClaims(roles.Select(r => new Claim(SchoolClaims.Role, r)));
+
+        // Sessão de suporte (P-11): marca toda auditoria desta requisição e ativa o modo somente leitura.
+        if (SupportSession.IsSupportOnly(roles))
+        {
+            identity.AddClaim(new Claim(AuditLog.SupportSessionClaim, "true"));
+        }
         ctx.ReplacePrincipal(new ClaimsPrincipal(identity));
     }
 

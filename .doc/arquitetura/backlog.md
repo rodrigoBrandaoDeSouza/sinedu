@@ -47,7 +47,7 @@ Legenda: 🔒 segurança bloqueante · 🧪 inclui teste de negação/isolamento
 | P-08 | Faturas: lançamento, baixa manual, NF | P-07 |
 | P-09 | Alertas de cobrança (job diário): fatura vencida, contrato vencendo, limite excedido | P-08 |
 | P-10 🔒 ✅ | Métricas agregadas: view `metrics.v_counts` + papel `sinedu_metrics` + job noturno + tela | P-02 |
-| P-11 🔒🧪 | Acesso de suporte: pedido no painel → aprovação do Diretor na escola → papel temporário somente leitura → expiração/revogação | P-01, F1-08 |
+| P-11 🔒🧪 ✅ | Acesso de suporte: pedido no painel → aprovação do Diretor na escola → papel temporário somente leitura → expiração/revogação. Login único só aceita conta da plataforma com liberação vigente; toda requisição auditada como `support_session`; métodos que mudam estado → 403 (`SupportAccessTests`) | P-01, F1-08 |
 | P-12 🔒 🟡 | Contas de plataforma, desbloqueio e reset de MFA de usuários (auditado, com aviso por e-mail) — pronto na plataforma; o registro também na auditoria da escola fica para o P-11 | P-01 |
 | P-13 | Encerramento de escola: exportação dos dados comuns, retenção, destruição de banco, bucket e chave | P-03 |
 | P-14 🔒🧪 ✅ | `PlatformPanelTests`: nenhum dado de aluno alcançável pelo painel | P-10, P-11 |
@@ -65,7 +65,7 @@ Legenda: 🔒 segurança bloqueante · 🧪 inclui teste de negação/isolamento
 | F2-07 🧪 ✅ | Escopo de aluno para Professor/Consulta | F2-03, F2-04, F2-05 |
 | F2-08 🧪 ✅ | Busca de alunos paginada e restrita ao escopo | F2-07 |
 | F2-09 ✅ | Front: períodos, turmas, lista de alunos, painel do aluno (sem abas sensíveis) | F2-01..F2-08 |
-| F2-10 🟡 | Front: administração da escola (usuários, convites, vínculos, categorias, aprovação de suporte) — usuários e convites prontos | F1-12, F2-03, P-11 |
+| F2-10 🟡 | Front: administração da escola (usuários, convites, vínculos, categorias, aprovação de suporte) — usuários, convites e acesso de suporte prontos; categorias ainda não | F1-12, F2-03, P-11 |
 | F2-11 | Contrato OpenAPI + cliente TypeScript gerado | F2-05 |
 
 ## Fase 3 — Importação
@@ -95,7 +95,7 @@ Legenda: 🔒 segurança bloqueante · 🧪 inclui teste de negação/isolamento
 | F4-05 🔒🧪 🟡 | Importação de Saúde/Proteção (fluxo dedicado) — Saúde pronta; Proteção fica no cadastro manual (registros dependem de documento e vigência) | F4-02, F3-03 |
 | F4-06 🔒 ✅ | Exportação excepcional com justificativa, marca d'água e auditoria | F4-02 |
 | F4-07 ✅ | Front: abas Saúde e Proteção carregadas sob demanda só para perfis autorizados; modal de step-up | F4-01..F4-03 |
-| F4-08 🔒🧪 🟡 | `ProtectedDataLeakTests` completo (inclui métricas da plataforma, suporte e backups) — varre respostas, cabeçalhos, tabelas brutas da escola e da plataforma, S3, logs e e-mails; métricas (P-10) e backups entram quando existirem | F4-01..F4-06, P-10, P-11 |
+| F4-08 🔒🧪 🟡 | `ProtectedDataLeakTests` completo (inclui métricas da plataforma, suporte e backups) — varre respostas, cabeçalhos, tabelas brutas da escola e da plataforma, S3, logs e e-mails; métricas (P-10) e suporte (P-11) cobertos; backups ainda não | F4-01..F4-06, P-10, P-11 |
 | F4-09 🔒 ✅ | Rotação de chave da escola (`rewrap`) e runbook | F4-01 |
 
 ## Fase 5 — Ocorrências e comunicações

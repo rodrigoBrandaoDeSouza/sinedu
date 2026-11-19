@@ -13,7 +13,7 @@ namespace Sinedu.Platform.Identity;
 /// </summary>
 internal static class InternalEndpoints
 {
-    public const string Policy = "internal:vinculos";
+    public const string Policy = Policies.PlatformInternal;
 
     public static void Map(IEndpointRouteBuilder endpoints)
     {

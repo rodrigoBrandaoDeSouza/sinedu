@@ -6,7 +6,7 @@ namespace Sinedu.SharedKernel.Tenancy;
 /// </summary>
 public static class TenantSchema
 {
-    public const string Version = "2026.11.19.1";
+    public const string Version = "2026.11.19.2";
 }
 
 public enum TenantStatus
@@ -79,4 +79,18 @@ public static class MetricsContract
 
     /// <summary>Senha do papel, no Vault (KV), gerada pela plataforma.</summary>
     public const string SecretPath = "platform/metrics";
+}
+
+/// <summary>Liberação de suporte vigente numa escola (P-11): aprovada pelo Diretor, com prazo.</summary>
+public sealed record SupportGrantInfo(Guid TenantId, string TenantSlug, string TenantName, DateTimeOffset ExpiresAt);
+
+/// <summary>
+/// Consulta às liberações de suporte (implementada pelo módulo Platform.Support). O login único usa para deixar uma
+/// conta da plataforma entrar numa escola só enquanto houver liberação do Diretor (D17).
+/// </summary>
+public interface ISupportAccessDirectory
+{
+    Task<SupportGrantInfo?> ActiveGrantAsync(Guid userId, Guid tenantId, CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<SupportGrantInfo>> ActiveGrantsAsync(Guid userId, CancellationToken cancellationToken = default);
 }

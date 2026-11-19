@@ -35,7 +35,9 @@ services.AddScoped<TenantScope>();
 services.AddSingleton(new RegistryDataSource(NpgsqlDataSource.Create(
     configuration.GetConnectionString("PlatformRegistry") ?? throw new InvalidOperationException("ConnectionStrings:PlatformRegistry ausente."))));
 services.AddScoped<ITenantResolver, TenantRegistryResolver>();
+services.AddSingleton<Sinedu.Tenant.Host.Operations.TenantJobRunner>();
 services.AddHostedService<Sinedu.Tenant.Host.Operations.NotificationRetryWorker>();
+services.AddHostedService<Sinedu.Tenant.Host.Operations.SupportRequestWorker>();
 
 services.AddTenantDbContext<AuditDbContext>(AuditDbContext.Schema);
 services.AddScoped<IAuditLog, AuditLog>();
@@ -74,6 +76,7 @@ app.UseSineduWebDefaults();
 app.UseMiddleware<TenantResolutionMiddleware>();
 app.UseMiddleware<SameOriginMiddleware>();
 app.UseAuthentication();
+app.UseMiddleware<Sinedu.Tenant.Host.Auth.SupportSessionMiddleware>();
 app.UseAuthorization();
 
 app.MapGet("/api/health", (TenantScope tenant) => Results.Ok(new { status = "ok", tenant = tenant.Current.Slug }))

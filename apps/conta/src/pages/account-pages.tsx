@@ -42,7 +42,16 @@ export function HomePage() {
         ) : null}
         {schools.map((s) => (
           <li key={s.slug}>
-            <Destination href={s.url} icon={Building2} title={s.name} subtitle={new URL(s.url).host} />
+            <Destination
+              href={s.url}
+              icon={Building2}
+              title={s.name}
+              subtitle={
+                s.supportUntil
+                  ? `Suporte (somente leitura) até ${new Date(s.supportUntil).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}`
+                  : new URL(s.url).host
+              }
+            />
           </li>
         ))}
       </ul>

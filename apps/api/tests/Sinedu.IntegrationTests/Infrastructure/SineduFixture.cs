@@ -68,6 +68,7 @@ public sealed class SineduFixture : IAsyncLifetime
 
         Platform = new WebApplicationFactory<PlatformHostEntryPoint>().WithWebHostBuilder(b => Configure(b, platform: true));
         School = new WebApplicationFactory<TenantHostEntryPoint>().WithWebHostBuilder(b => Configure(b, platform: false));
+        PlatformMemberships.PlatformServices = () => Platform.Services;
 
         await ProvisionAsync(SchoolA, "Escola A (teste)");
         await ProvisionAsync(SchoolB, "Escola B (teste)");
@@ -123,6 +124,27 @@ public sealed class SineduFixture : IAsyncLifetime
             await db.SaveChangesAsync();
         }
 
+        return SessionCookie(slug, userId, sessionId, authTime, mfa);
+    }
+
+    /// <summary>Sessão para alguém que já é membro da escola (ex.: suporte liberado pelo Diretor): só cria a sessão e o cookie.</summary>
+    public async Task<SchoolSession> SessionForMemberAsync(string slug, Guid userId)
+    {
+        var now = DateTimeOffset.UtcNow;
+        var sessionId = Guid.CreateVersion7();
+        await using (var db = new AccessDbContext(new DbContextOptionsBuilder<AccessDbContext>()
+            .UseSineduPostgres(await SchoolConnectionAsync(slug, owner: true), AccessDbContext.Schema).Options))
+        {
+            db.Sessions.Add(new UserSession { Id = sessionId, UserId = userId, CreatedAt = now, LastSeenAt = now, AuthTime = now, ExpiresAt = now.AddHours(10) });
+            await db.SaveChangesAsync();
+        }
+
+        return SessionCookie(slug, userId, sessionId, now, mfa: true);
+    }
+
+    private SchoolSession SessionCookie(string slug, Guid userId, Guid sessionId, DateTimeOffset authTime, bool mfa)
+    {
+        var now = DateTimeOffset.UtcNow;
         var claims = new List<Claim>
         {
             new(SchoolClaims.Subject, userId.ToString()),
@@ -223,6 +245,7 @@ public sealed class SineduFixture : IAsyncLifetime
             .UseSineduPostgres(PlatformConnectionString, IdentityDbContext.Schema).UseOpenIddict().Options);
         await identity.Database.MigrateAsync();
         await using (var metrics = PlatformDb<Sinedu.Platform.Metrics.MetricsDbContext>(Sinedu.Platform.Metrics.MetricsDbContext.Schema)) await metrics.Database.MigrateAsync();
+        await using (var support = PlatformDb<Sinedu.Platform.Support.SupportDbContext>(Sinedu.Platform.Support.SupportDbContext.Schema)) await support.Database.MigrateAsync();
 
         // Papel de métricas antes de provisionar as escolas (como o `migrate` de produção), para os GRANTs da view.
         var admin = new NpgsqlConnectionStringBuilder(PlatformConnectionString) { Database = "postgres" };
@@ -264,6 +287,7 @@ public sealed class SineduFixture : IAsyncLifetime
             ["RateLimiting:PermitPerMinute"] = "100000",
             ["Notifications:RetryWorker"] = "false",
             ["Metrics:Worker"] = "false",
+            ["Support:Worker"] = "false",
             ["Oidc:TenantClientSecret"] = "test-escola-client-secret-0123456789abcdef",
             ["Oidc:PanelClientSecret"] = "test-painel-client-secret-0123456789abcdef",
         };

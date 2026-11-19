@@ -17,6 +17,7 @@ import { SettingsPage } from "./pages/settings-page";
 import { StaffPage } from "./pages/staff-page";
 import { StudentPage } from "./pages/student-page";
 import { StudentsPage } from "./pages/students-page";
+import { SupportPage } from "./pages/support-page";
 import { UsersPage } from "./pages/users-page";
 
 export const routes: RouteObject[] = [
@@ -42,6 +43,7 @@ export const routes: RouteObject[] = [
       { path: "usuarios", element: <UsersPage /> },
       { path: "administracao", element: <AdminPage /> },
       { path: "configuracoes", element: <SettingsPage /> },
+      { path: "suporte", element: <SupportPage /> },
       { path: "*", element: <NotFoundPage /> },
     ],
   },

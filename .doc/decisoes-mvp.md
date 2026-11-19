@@ -133,6 +133,16 @@ Interpretações feitas na arquitetura. Valem como padrão até serem confirmada
 - O papel `sinedu_metrics` (senha gerada no Vault pela plataforma no `migrate`) só tem `CONNECT` e `SELECT` nessa view. O teste confirma que ele não lê nenhuma tabela.
 - **Coleta:** a cada 6 horas (`Metrics:Worker`), ou pelo botão "Coletar agora" (SUPER_ADMIN). Guardamos uma foto por escola a cada coleta, para a evolução de alunos ativos.
 - **Atualização de escolas (P-05):** a página Escolas avisa quando há banco desatualizado (escola em manutenção) e o SUPER_ADMIN atualiza todas em lote.
+- **Acesso de suporte (P-11, D17):**
+  - O suporte pede no painel (escola, motivo e 1 a 24 h). Um pedido em aberto por pessoa e escola.
+  - A escola busca os pedidos na plataforma a cada minuto e avisa os diretores por e-mail.
+  - Só o Diretor libera, recusa ou revoga, na tela **Acesso de suporte**. Admin técnico vê o registro.
+  - Liberado, a conta recebe `SUPORTE_PLATAFORMA` no banco da escola, com prazo checado a cada requisição.
+  - O login único só deixa uma conta da plataforma entrar numa escola enquanto houver liberação vigente. Uma liberação nunca vale para outra escola.
+  - Somente leitura: qualquer método que muda estado responde 403.
+  - Toda requisição do suporte é auditada como `support_session`, só com a rota e o aluno, nunca o conteúdo. O Diretor vê quantas telas foram abertas.
+  - Revogar derruba as sessões na hora.
+  - Ocorrências, comunicações, indicadores, Saúde e Proteção continuam fora do alcance, pelas políticas de cada endpoint.
 - **Contas (P-12):** SUPER_ADMIN convida SUPER_ADMIN ou SUPORTE (e-mail que já tem conta de escola é recusado — D19), retira acesso (ninguém retira o próprio, e o último SUPER_ADMIN não sai), busca qualquer conta pelo e-mail para **desbloquear** ou **reiniciar o MFA**. O reinício exige motivo, derruba as sessões, apaga os códigos de recuperação e avisa a pessoa por e-mail. Tudo na auditoria da plataforma.
 
 ## SMTP por escola (painel)
