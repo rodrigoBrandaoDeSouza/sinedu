@@ -15,8 +15,12 @@ ENV ASPNETCORE_URLS=http://+:8080 \
     SINEDU_HOST_DLL=${HOST}.dll
 WORKDIR /app
 COPY --from=build /out .
+# libgssapi: o Npgsql sonda Kerberos ao conectar; sem a biblioteca, cada conexão loga um erro inofensivo.
 # Volume das chaves de sessão (DataProtection): gravável pelo usuário da aplicação.
-RUN mkdir -p /keys && chown app:app /keys
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libgssapi-krb5-2 \
+    && rm -rf /var/lib/apt/lists/* \
+    && mkdir -p /keys && chown app:app /keys
 USER app
 EXPOSE 8080
 ENTRYPOINT ["sh", "-c", "exec dotnet \"$SINEDU_HOST_DLL\" \"$@\"", "--"]
