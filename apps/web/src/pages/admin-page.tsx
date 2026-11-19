@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Alert, api, ApiError, Badge, Button, Card, CardBody, CardHeader, Dialog, Input, PageHeader } from "@sinedu/ui";
-import { CalendarRange, CheckCircle2, Plus, Save } from "lucide-react";
+import { Alert, api, ApiError, apiFetch, Badge, Button, Card, CardBody, CardHeader, Dialog, Input, PageHeader } from "@sinedu/ui";
+import { CalendarRange, CheckCircle2, ImageOff, ImageUp, Plus, Save } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { formatDate, schoolApi, type SchoolYear } from "../lib/school-api";
 
@@ -199,7 +199,73 @@ function ProfileCard() {
             Salvar
           </Button>
         </form>
+        <LogoField />
       </CardBody>
     </Card>
+  );
+}
+
+/** F5-05: logo no cabeçalho da ata. PNG ou JPG até 512 KB (o servidor confere o conteúdo do arquivo). */
+function LogoField() {
+  const [version, setVersion] = useState(() => Date.now());
+  const [hasLogo, setHasLogo] = useState(true);
+  const [error, setError] = useState<string>();
+  const done = () => {
+    setError(undefined);
+    setHasLogo(true);
+    setVersion(Date.now());
+  };
+  const upload = useMutation({
+    mutationFn: (file: File) => {
+      const body = new FormData();
+      body.append("file", file);
+      return apiFetch("/api/school/profile/logo", { method: "PUT", body });
+    },
+    onSuccess: done,
+    onError: (err) => setError(err instanceof ApiError ? (Object.values(err.fieldErrors)[0]?.[0] ?? err.message) : "Não foi possível enviar."),
+  });
+  const remove = useMutation({ mutationFn: () => api.delete("/api/school/profile/logo"), onSuccess: () => setVersion(Date.now()) });
+
+  return (
+    <div className="mt-6 border-t border-border pt-5">
+      <p className="text-sm font-medium text-foreground">Logo nas atas</p>
+      <p className="text-xs text-muted-foreground">PNG ou JPG de até 512 KB. Aparece no canto do cabeçalho da ata em PDF.</p>
+      <div className="mt-3 flex flex-wrap items-center gap-3">
+        <span className="grid h-16 w-20 place-items-center overflow-hidden rounded-lg border border-border bg-surface-raised">
+          {hasLogo ? (
+            <img
+              key={version}
+              src={`/api/school/profile/logo?v=${version}`}
+              alt="Logo atual da escola"
+              className="max-h-14 max-w-18 object-contain"
+              onError={() => setHasLogo(false)}
+              onLoad={() => setHasLogo(true)}
+            />
+          ) : (
+            <ImageOff className="size-5 text-muted-foreground" aria-label="Sem logo" />
+          )}
+        </span>
+        <label className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-lg border border-border-strong bg-surface-raised px-3.5 text-sm font-medium text-foreground hover:bg-surface-sunken">
+          <ImageUp className="size-4" aria-hidden />
+          {upload.isPending ? "Enviando…" : "Enviar logo"}
+          <input
+            type="file"
+            accept="image/png,image/jpeg"
+            className="sr-only"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) upload.mutate(file);
+              e.target.value = "";
+            }}
+          />
+        </label>
+        {hasLogo ? (
+          <Button size="sm" variant="ghost" disabled={remove.isPending} onClick={() => remove.mutate()}>
+            Remover
+          </Button>
+        ) : null}
+      </div>
+      {error ? <Alert tone="critical" title={error} className="mt-3" /> : null}
+    </div>
   );
 }

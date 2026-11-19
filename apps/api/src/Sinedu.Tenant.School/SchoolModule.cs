@@ -30,6 +30,8 @@ public sealed class SchoolModule : IModule
         var api = endpoints.MapGroup("/api/school");
 
         // ---- Perfil da escola ----
+        SchoolLogo.Map(api);
+
         api.MapGet("/profile", async (SchoolDbContext db, TenantScope tenant, CancellationToken ct) =>
             await db.Profile.AsNoTracking().FirstOrDefaultAsync(ct) ?? new SchoolProfile { Name = tenant.Current.DisplayName });
 

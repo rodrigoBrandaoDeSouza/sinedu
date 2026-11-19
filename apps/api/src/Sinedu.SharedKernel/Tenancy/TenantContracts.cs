@@ -6,7 +6,7 @@ namespace Sinedu.SharedKernel.Tenancy;
 /// </summary>
 public static class TenantSchema
 {
-    public const string Version = "2026.11.19.2";
+    public const string Version = "2026.11.19.3";
 }
 
 public enum TenantStatus

@@ -175,6 +175,32 @@ public class ImportTests(SineduFixture fx)
         Assert.Equal(HttpStatusCode.NotFound, (await inA.GetAsync(new Uri($"/api/imports/{batch}", UriKind.Relative))).StatusCode);
     }
 
+    [Fact]
+    public async Task Mapeamento_confirmado_vira_padrao_do_mesmo_formato_de_planilha()
+    {
+        using var client = await DirectorAsync();
+        const string header = "Identificador Fictício;Estudante (formato próprio);Sala Fictícia";
+
+        // Cabeçalho que a sugestão automática não reconhece: a escola mapeia à mão e confirma.
+        var first = await UploadCsvAsync(client, $"{header}\n5550009001;PEDRO FICTÍCIO MAPEADO;6º A Manhã\n");
+        var custom = Map(("Code", 0), ("Name", 1), ("Classroom", 2));
+        await MapAsync(client, first, "CSV", 1, custom);
+        Assert.Equal(HttpStatusCode.OK, (await client.PostAsync(new Uri($"/api/imports/{first}/confirm", UriKind.Relative), null)).StatusCode);
+
+        // Mesmo formato: já abre com o mapeamento salvo.
+        var second = await UploadCsvAsync(client, $"{header}\n5550009002;LUANA FICTÍCIA MAPEADA;6º A Manhã\n");
+        var details = await client.GetFromJsonAsync<JsonElement>($"/api/imports/{second}");
+        Assert.True(details.GetProperty("savedMapping").GetBoolean());
+        var mapping = details.GetProperty("mapping");
+        Assert.Equal(0, mapping.GetProperty("Code").GetInt32());
+        Assert.Equal(1, mapping.GetProperty("Name").GetInt32());
+        Assert.Equal(2, mapping.GetProperty("Classroom").GetInt32());
+
+        // Outro formato: sugestão automática de sempre.
+        var other = await UploadCsvAsync(client, "Nome do Aluno;Turma\nOUTRO FORMATO FICTÍCIO;6º A Manhã\n");
+        Assert.False((await client.GetFromJsonAsync<JsonElement>($"/api/imports/{other}")).GetProperty("savedMapping").GetBoolean());
+    }
+
     // ---------- apoio ----------
 
     private async Task<HttpClient> DirectorAsync()

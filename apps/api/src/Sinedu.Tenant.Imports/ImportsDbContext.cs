@@ -125,6 +125,24 @@ public sealed class ImportRow
     public Guid? ResolvedBy { get; set; }
 }
 
+/// <summary>
+/// Mapeamento salvo (F3-02): ao confirmar uma importação, a escola guarda o mapeamento para aquele formato de planilha,
+/// identificado pela assinatura dos títulos das colunas. Só títulos de coluna — nenhum dado de aluno.
+/// </summary>
+public sealed class MappingPreset
+{
+    public Guid Id { get; set; }
+
+    /// <summary>SHA-256 dos títulos normalizados da linha de cabeçalho.</summary>
+    public required string Signature { get; set; }
+
+    public required string MappingJson { get; set; }
+
+    public DateTimeOffset UpdatedAt { get; set; }
+
+    public Guid UpdatedBy { get; set; }
+}
+
 public sealed class ImportsDbContext(DbContextOptions<ImportsDbContext> options) : DbContext(options)
 {
     public const string Schema = "imports";
@@ -132,6 +150,8 @@ public sealed class ImportsDbContext(DbContextOptions<ImportsDbContext> options)
     public DbSet<ImportBatch> Batches => Set<ImportBatch>();
 
     public DbSet<ImportRow> Rows => Set<ImportRow>();
+
+    public DbSet<MappingPreset> Presets => Set<MappingPreset>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -149,6 +169,14 @@ public sealed class ImportsDbContext(DbContextOptions<ImportsDbContext> options)
             e.Property(x => x.TotalsJson).HasColumnType("jsonb");
             e.Property<uint>("xmin").IsRowVersion();
             e.HasIndex(x => x.CreatedAt);
+        });
+
+        modelBuilder.Entity<MappingPreset>(e =>
+        {
+            e.ToTable("mapping_presets");
+            e.Property(x => x.Signature).HasMaxLength(64);
+            e.Property(x => x.MappingJson).HasColumnType("jsonb");
+            e.HasIndex(x => x.Signature).IsUnique();
         });
 
         modelBuilder.Entity<ImportRow>(e =>

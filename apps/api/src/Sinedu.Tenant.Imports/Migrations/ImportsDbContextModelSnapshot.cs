@@ -196,6 +196,42 @@ namespace Sinedu.Tenant.Imports.Migrations
 
                     b.ToTable("rows", "imports");
                 });
+
+            modelBuilder.Entity("Sinedu.Tenant.Imports.MappingPreset", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("MappingJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("mapping_json");
+
+                    b.Property<string>("Signature")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("signature");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id")
+                        .HasName("pk_mapping_presets");
+
+                    b.HasIndex("Signature")
+                        .IsUnique()
+                        .HasDatabaseName("ix_mapping_presets_signature");
+
+                    b.ToTable("mapping_presets", "imports");
+                });
 #pragma warning restore 612, 618
         }
     }

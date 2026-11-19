@@ -75,7 +75,7 @@ Legenda: 🔒 segurança bloqueante · 🧪 inclui teste de negação/isolamento
 | ID | Item | Dep. |
 |----|------|------|
 | F3-01 ✅ | Upload seguro e leitura CSV/XLSX | F2-11 |
-| F3-02 🟡 | Mapeamento assistido + presets por formato — sugestão automática por cabeçalho e conteúdo pronta; salvar mapeamentos personalizados ainda não | F3-01 |
+| F3-02 ✅ | Mapeamento assistido + presets por formato: sugestão por cabeçalho e conteúdo; ao confirmar, o mapeamento fica salvo para a assinatura do cabeçalho e é reaplicado em planilhas do mesmo formato | F3-01 |
 | F3-03 ✅ | Validação por linha com erros mascarados | F3-02 |
 | F3-04 ✅ | Consolidação: identificador institucional; sugestões por atributos; nunca mesclar só pelo nome; não sobrescrever com vazio | F3-03 |
 | F3-05 ✅ | Prévia e resolução manual de duplicados/conflitos | F3-04 |
@@ -106,7 +106,7 @@ Legenda: 🔒 segurança bloqueante · 🧪 inclui teste de negação/isolamento
 | F5-02 🧪 ✅ | Revisões com autor, data e justificativa | F5-01 |
 | F5-03 🧪 ✅ | Anexos de ocorrência | F5-01 |
 | F5-04 ✅ | Linha do tempo no painel do aluno | F5-01 |
-| F5-05 🟡 | Ata em PDF com cabeçalho da escola — nome, código, endereço e contatos; **logo** fica para quando houver upload de logo da escola | F5-02 |
+| F5-05 ✅ | Ata em PDF com cabeçalho da escola: nome, código, endereço, contatos e logo (PNG/JPG até 512 KB, enviado em Administração) | F5-02 |
 | F5-06 ✅ | `INotificationProvider` + SMTP; WhatsApp desabilitado | F0-02 |
 | F5-07 🧪 ✅ | Comunicação: prévia, autorização, idempotência, fila, retry, reenvio | F5-01, F5-06, F2-06 |
 | F5-08 ✅ | Modelos de e-mail neutros | F5-07 |

@@ -37,7 +37,7 @@ internal static class SampleImporter
 
         var sheets = ImportService.Sheets(batch);
         var sheet = sheets.FirstOrDefault(s => s.Name == sheetName) ?? sheets.OrderByDescending(s => s.RowCount).First();
-        var mapping = await imports.SuggestAsync(batch, sheet.Name, sheet.HeaderRow, CancellationToken.None);
+        var (mapping, _) = await imports.SuggestAsync(batch, sheet.Name, sheet.HeaderRow, CancellationToken.None);
         Console.WriteLine($"Aba \"{sheet.Name}\" (cabeçalho na linha {sheet.HeaderRow}); colunas mapeadas: {string.Join(", ", mapping.Select(m => $"{m.Key}=#{m.Value + 1}"))}");
 
         var preview = await imports.MapAndValidateAsync(batch, sheet.Name, sheet.HeaderRow, mapping, CancellationToken.None);

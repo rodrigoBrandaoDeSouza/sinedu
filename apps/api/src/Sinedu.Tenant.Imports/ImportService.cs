@@ -81,12 +81,47 @@ public sealed class ImportService(
     public static ImportTotals? Totals(ImportBatch batch) =>
         batch?.TotalsJson is null ? null : JsonSerializer.Deserialize<ImportTotals>(batch.TotalsJson, Json);
 
-    public async Task<Dictionary<ImportField, int>> SuggestAsync(ImportBatch batch, string sheet, int headerRow, CancellationToken ct)
+    /// <summary>Mapeamento salvo para este formato de planilha (F3-02), senão a sugestão automática.</summary>
+    public async Task<(Dictionary<ImportField, int> Mapping, bool Saved)> SuggestAsync(ImportBatch batch, string sheet, int headerRow, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(batch);
         var rows = await db.Rows.AsNoTracking().Where(r => r.BatchId == batch.Id && r.Sheet == sheet).OrderBy(r => r.RowNumber).Take(250)
             .Select(r => new { r.RowNumber, r.Cells }).ToListAsync(ct);
-        return ImportFields.Suggest(new ParsedSheet(sheet, rows.Select(r => (r.RowNumber, r.Cells)).ToList()), headerRow);
+        var headers = rows.FirstOrDefault(r => r.RowNumber == headerRow)?.Cells ?? [];
+        var signature = Signature(headers);
+        if (signature is not null && await db.Presets.AsNoTracking().FirstOrDefaultAsync(p => p.Signature == signature, ct) is { } preset)
+        {
+            var saved = JsonSerializer.Deserialize<Dictionary<ImportField, int>>(preset.MappingJson, Json) ?? [];
+            if (saved.Count > 0 && saved.Values.All(c => c >= 0 && c < headers.Length))
+            {
+                return (saved, true);
+            }
+        }
+
+        return (ImportFields.Suggest(new ParsedSheet(sheet, rows.Select(r => (r.RowNumber, r.Cells)).ToList()), headerRow), false);
+    }
+
+    /// <summary>Assinatura do formato: títulos normalizados das colunas. Nula sem cabeçalho de texto.</summary>
+    public static string? Signature(IReadOnlyList<string?> headers)
+    {
+        var normalized = headers.Select(h => ImportFields.Normalize(h)).ToList();
+        if (normalized.Count(h => h.Length > 0) < 2) return null;
+        return Convert.ToHexString(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(string.Join("", normalized))));
+    }
+
+    private async Task SavePresetAsync(ImportBatch batch, Guid userId, CancellationToken ct)
+    {
+        if (batch.Sheet is null || batch.HeaderRow is null || batch.MappingJson is null) return;
+        var headers = await db.Rows.AsNoTracking().Where(r => r.BatchId == batch.Id && r.Sheet == batch.Sheet && r.RowNumber == batch.HeaderRow)
+            .Select(r => r.Cells).FirstOrDefaultAsync(ct) ?? [];
+        if (Signature(headers) is not { } signature) return;
+
+        var preset = await db.Presets.FirstOrDefaultAsync(p => p.Signature == signature, ct);
+        if (preset is null) db.Presets.Add(preset = new MappingPreset { Id = Guid.CreateVersion7(), Signature = signature, MappingJson = batch.MappingJson });
+        preset.MappingJson = batch.MappingJson;
+        preset.UpdatedAt = clock.GetUtcNow();
+        preset.UpdatedBy = userId;
+        await db.SaveChangesAsync(ct);
     }
 
     // ---------- 2/3. Mapeamento + validação (prévia) ----------
@@ -249,6 +284,9 @@ public sealed class ImportService(
         batch.Status = ImportStatus.Processing;
         batch.ConfirmedBy = userId;
         await db.SaveChangesAsync(ct);
+
+        // F3-02: o mapeamento confirmado vira o padrão deste formato de planilha.
+        await SavePresetAsync(batch, userId, ct);
 
         var year = await classrooms.GetActiveYearAsync(ct) ?? throw new ImportException("Não há ano letivo ativo.");
         var mapping = Mapping(batch);

@@ -107,11 +107,15 @@ function MappingStep({ batch, onSheet, onHeaderRow, onValidated }: { batch: Batc
       <Card className="xl:col-span-2">
         <CardHeader
           title="Ligue as colunas da planilha aos campos do Sinedu"
-          description="Sugerimos o mapeamento pelo cabeçalho e pelo conteúdo. Confira antes de continuar."
+          description={
+            batch.savedMapping
+              ? "Esta planilha tem o mesmo cabeçalho de uma importação já confirmada: usamos o mesmo mapeamento. Confira antes de continuar."
+              : "Sugerimos o mapeamento pelo cabeçalho e pelo conteúdo. Confira antes de continuar. Ao confirmar, ele fica salvo para este formato de planilha."
+          }
           actions={
             <Badge tone="brand">
               <Sparkles aria-hidden />
-              Sugestão automática
+              {batch.savedMapping ? "Mapeamento salvo" : "Sugestão automática"}
             </Badge>
           }
         />

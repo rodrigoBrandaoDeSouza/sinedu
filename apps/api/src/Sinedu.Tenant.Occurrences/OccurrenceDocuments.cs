@@ -118,12 +118,25 @@ internal sealed class OccurrenceDocuments(
 
             page.Header().Column(c =>
             {
-                c.Item().Text(header.Name).FontSize(14).Bold();
                 var line = string.Join(" · ", new[] { header.InstitutionalCode is null ? null : $"Código {header.InstitutionalCode}", header.Address, header.Phone, header.Email }.OfType<string>());
-                if (line.Length > 0)
+                c.Item().Row(r =>
                 {
-                    c.Item().Text(line).FontSize(8).FontColor(Colors.Grey.Darken1);
-                }
+                    // Logo da escola (F5-05), quando cadastrado na Administração.
+                    if (header.Logo is { } logo)
+                    {
+                        r.ConstantItem(56).Height(48).Image(logo).FitArea();
+                        r.ConstantItem(10);
+                    }
+
+                    r.RelativeItem().AlignMiddle().Column(t =>
+                    {
+                        t.Item().Text(header.Name).FontSize(14).Bold();
+                        if (line.Length > 0)
+                        {
+                            t.Item().Text(line).FontSize(8).FontColor(Colors.Grey.Darken1);
+                        }
+                    });
+                });
 
                 c.Item().PaddingTop(8).Text($"Ata de registro de ocorrência nº {number}").FontSize(13).Bold();
                 c.Item().PaddingTop(4).LineHorizontal(0.5f).LineColor(Colors.Grey.Lighten1);

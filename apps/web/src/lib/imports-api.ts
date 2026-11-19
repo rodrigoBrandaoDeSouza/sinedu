@@ -40,6 +40,8 @@ export interface BatchDetails extends BatchSummary {
   headers: (string | null)[];
   sample: (string | null)[][];
   mapping: Partial<Record<ImportField, number>>;
+  /** F3-02: mapeamento salvo de uma importação anterior com o mesmo cabeçalho. */
+  savedMapping?: boolean;
 }
 
 export interface FieldInfo {

@@ -65,8 +65,8 @@ public sealed class ImportsModule : IModule
             var sheets = ImportService.Sheets(batch);
             var selected = sheets.FirstOrDefault(s => s.Name == (sheet ?? batch.Sheet)) ?? sheets.OrderByDescending(s => s.RowCount).First();
             var header = headerRow ?? (selected.Name == batch.Sheet ? batch.HeaderRow : null) ?? selected.HeaderRow;
-            var mapping = selected.Name == batch.Sheet && batch.MappingJson is not null && headerRow is null
-                ? ImportService.Mapping(batch)
+            var (mapping, savedMapping) = selected.Name == batch.Sheet && batch.MappingJson is not null && headerRow is null
+                ? (ImportService.Mapping(batch), false)
                 : await imports.SuggestAsync(batch, selected.Name, header, ct);
 
             var headers = await db.Rows.AsNoTracking().Where(r => r.BatchId == id && r.Sheet == selected.Name && r.RowNumber == header).Select(r => r.Cells).FirstOrDefaultAsync(ct) ?? [];
@@ -82,6 +82,7 @@ public sealed class ImportsModule : IModule
                 Headers = headers,
                 Sample = sample,
                 Mapping = mapping,
+                SavedMapping = savedMapping,
                 Totals = ImportService.Totals(batch),
             });
         });
