@@ -64,6 +64,13 @@ if (args.Length >= 2 && args[0] == "rewrap-protected")
     return;
 }
 
+// anonymize-students {escola}: troca IRREVERSÍVEL dos dados pessoais de alunos/responsáveis por fictícios (homologação).
+if (args.Length >= 2 && args[0] == "anonymize-students")
+{
+    await Sinedu.Tenant.Host.Dev.StudentAnonymizer.RunAsync(app.Services, args[1]);
+    return;
+}
+
 // seed-demo {escola} {ano}: dados FICTÍCIOS para demonstração/homologação (nunca em escola real).
 if (args.Length >= 3 && args[0] == "seed-demo")
 {

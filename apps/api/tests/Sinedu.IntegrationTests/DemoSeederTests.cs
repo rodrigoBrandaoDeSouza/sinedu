@@ -49,3 +49,32 @@ public class DemoSeederTests(SineduFixture fx)
             await school.Staff.CountAsync(), await school.Years.CountAsync(y => y.Year == year + 1));
     }
 }
+
+[Collection(SineduTestGroup.Name)]
+public class StudentAnonymizerTests(SineduFixture fx)
+{
+    [Fact]
+    public async Task Troca_nomes_codigos_e_contatos_sem_deixar_o_original()
+    {
+        const string slug = "escola-anonimizar";
+        await fx.ProvisionExtraAsync(slug, "Escola Anonimizar (teste)");
+        var sample = await SchoolData.EnsureAsync(fx, slug);
+        var cs = await fx.SchoolConnectionAsync(slug, owner: true);
+        string? codeBefore;
+        await using (var db = new StudentsDbContext(new DbContextOptionsBuilder<StudentsDbContext>().UseSineduPostgres(cs, StudentsDbContext.Schema).Options))
+        {
+            codeBefore = (await db.Students.SingleAsync(s => s.Id == sample.StudentInX)).InstitutionalCode;
+        }
+
+        await Sinedu.Tenant.Host.Dev.StudentAnonymizer.RunAsync(fx.School.Services, slug);
+
+        await using (var db = new StudentsDbContext(new DbContextOptionsBuilder<StudentsDbContext>().UseSineduPostgres(cs, StudentsDbContext.Schema).Options))
+        {
+            var after = await db.Students.SingleAsync(s => s.Id == sample.StudentInX);
+            Assert.NotEqual(sample.StudentInXName, after.FullName);
+            Assert.Equal(Student.ToSearch(after.FullName), after.SearchName);
+            if (codeBefore is not null) Assert.NotEqual(codeBefore, after.InstitutionalCode);
+            Assert.Empty(await DbScan.FindAsync(cs, sample.StudentInXName));
+        }
+    }
+}
