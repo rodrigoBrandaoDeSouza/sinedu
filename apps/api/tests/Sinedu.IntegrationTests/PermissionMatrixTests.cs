@@ -38,6 +38,15 @@ public class PermissionMatrixTests(SineduFixture fx)
         { "/api/access/support", Roles.ReadOnly, HttpStatusCode.Forbidden },
         { "/api/access/support", Roles.PlatformSupport, HttpStatusCode.Forbidden },
 
+        // GET /api/audit — auditoria da escola: só o Diretor (P9)
+        { "/api/audit", null, HttpStatusCode.Unauthorized },
+        { "/api/audit", Roles.Director, HttpStatusCode.OK },
+        { "/api/audit", Roles.Pedagogue, HttpStatusCode.Forbidden },
+        { "/api/audit", Roles.TechAdmin, HttpStatusCode.Forbidden },
+        { "/api/audit", Roles.Teacher, HttpStatusCode.Forbidden },
+        { "/api/audit", Roles.ReadOnly, HttpStatusCode.Forbidden },
+        { "/api/audit", Roles.PlatformSupport, HttpStatusCode.Forbidden },
+
         // GET /api/security/step-up — só Diretor/Pedagogo (base dos módulos protegidos)
         { "/api/security/step-up", null, HttpStatusCode.Unauthorized },
         { "/api/security/step-up", Roles.Director, HttpStatusCode.NoContent },

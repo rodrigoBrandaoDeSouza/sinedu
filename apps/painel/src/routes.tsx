@@ -2,6 +2,7 @@ import type { RouteObject } from "react-router";
 import { PanelLayout } from "./layout/panel-layout";
 import { ComingSoonPage } from "./pages/coming-soon-page";
 import { AccountsPage } from "./pages/accounts-page";
+import { AuditPage } from "./pages/audit-page";
 import { EmailTestPage } from "./pages/email-test-page";
 import { OverviewPage } from "./pages/overview-page";
 import { SettingsPage } from "./pages/settings-page";
@@ -26,7 +27,7 @@ export const routes: RouteObject[] = [
       { path: "suporte", element: <SupportPage /> },
       { path: "contratos", element: <ContractsPage /> },
       { path: "faturas", element: <InvoicesPage /> },
-      soon("auditoria", "Auditoria", "Ações realizadas no painel da plataforma.", "F1-09"),
+      { path: "auditoria", element: <AuditPage /> },
       { path: "contas", element: <AccountsPage /> },
       { path: "teste-email", element: <EmailTestPage /> },
       { path: "configuracoes", element: <SettingsPage /> },

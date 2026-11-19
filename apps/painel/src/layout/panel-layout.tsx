@@ -25,7 +25,7 @@ const sectionsFor = (superAdmin: boolean): NavSection[] => [
   {
     title: "Sistema",
     items: [
-      { to: "/auditoria", label: "Auditoria", icon: ScrollText },
+      ...(superAdmin ? [{ to: "/auditoria", label: "Auditoria", icon: ScrollText }] : []),
       { to: "/contas", label: "Contas da plataforma", icon: ShieldCheck },
       { to: "/teste-email", label: "Teste de e-mail", icon: MailCheck },
       { to: "/configuracoes", label: "Configurações", icon: Settings },

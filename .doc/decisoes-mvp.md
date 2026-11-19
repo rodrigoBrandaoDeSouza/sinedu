@@ -178,5 +178,5 @@ Interpretações feitas na arquitetura. Valem como padrão até serem confirmada
 
 ### Pendências técnicas da Fase 4
 
-- [ ] **Auditoria de acessos ao registro na tela** (matriz: Diretor vê quem acessou; P9 para Pedagogia). Os eventos já são gravados; falta a visualização.
+- [x] **Auditoria na tela:** escola em Configuração → Auditoria (só Diretor, P9; filtros por tipo, período e aluno) e plataforma no painel (só SUPER_ADMIN).
 - [ ] **Anexos de dev corrompidos:** anexos enviados antes da correção do cliente S3 (checksum em trailer) na `escola-demo` não abrem (a verificação de integridade bloqueia). Só afeta dados de teste.

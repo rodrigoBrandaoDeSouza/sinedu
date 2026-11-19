@@ -2,6 +2,7 @@ import type { RouteObject } from "react-router";
 import { SchoolLayout } from "./layout/school-layout";
 import { DashboardPage } from "./pages/dashboard-page";
 import { AdminPage } from "./pages/admin-page";
+import { AuditPage } from "./pages/audit-page";
 import { ClassroomPage } from "./pages/classroom-page";
 import { ClassroomsPage } from "./pages/classrooms-page";
 import { ImportPage } from "./pages/import-page";
@@ -44,6 +45,7 @@ export const routes: RouteObject[] = [
       { path: "administracao", element: <AdminPage /> },
       { path: "configuracoes", element: <SettingsPage /> },
       { path: "suporte", element: <SupportPage /> },
+      { path: "auditoria", element: <AuditPage /> },
       { path: "*", element: <NotFoundPage /> },
     ],
   },

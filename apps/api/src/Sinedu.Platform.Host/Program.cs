@@ -108,6 +108,7 @@ app.MapGet("/api/health", (HttpContext context) => Results.Ok(new
 }));
 
 app.MapModules();
+PlatformAuditEndpoints.Map(app);
 
 // Contrato OpenAPI só fora de produção: o mapa da API não fica público. Versionado em .doc/api/.
 if (!app.Environment.IsProduction())

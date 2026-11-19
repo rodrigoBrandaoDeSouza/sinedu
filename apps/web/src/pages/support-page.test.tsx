@@ -89,3 +89,36 @@ describe("Escola em encerramento (P-13)", () => {
     expect(screen.queryByRole("link", { name: /baixar exportação/i })).not.toBeInTheDocument();
   });
 });
+
+describe("Auditoria da escola (P9)", () => {
+  it("Direção vê o fato, sem conteúdo, com o aluno", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        if (url === "/api/me") {
+          return Response.json({ user: { id: "u1", name: "Diretora Fictícia", email: "d@escola.local" }, roles: ["DIRETOR"], school: { slug: "e", name: "Escola" }, mfa: true, authTime: null, accountUrl: "" });
+        }
+        if (url.startsWith("/api/audit")) {
+          return Response.json({
+            total: 1, page: 1, pageSize: 50,
+            items: [{ id: 1, occurredAt: "2026-11-19T12:00:00Z", action: "health_viewed", result: "Allowed", user: { id: "u2", name: "Pedagoga Fictícia", email: null }, student: { id: "s1", name: "ALUNO FICTÍCIO" }, isSupportSession: false, ip: null }],
+          });
+        }
+        return new Response(null, { status: 404 });
+      }),
+    );
+    renderAt("/auditoria");
+
+    expect(await screen.findByText("Abriu a ficha de Saúde")).toBeInTheDocument();
+    expect(screen.getByText("Pedagoga Fictícia")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "ALUNO FICTÍCIO" })).toHaveAttribute("href", "/alunos/s1");
+  });
+
+  it("Pedagogia não tem o menu de auditoria", async () => {
+    signedInAs(["PEDAGOGO"]);
+    renderAt("/suporte");
+
+    await screen.findAllByText(/pedido/i);
+    expect(screen.queryByRole("link", { name: "Auditoria" })).not.toBeInTheDocument();
+  });
+});

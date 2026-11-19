@@ -14,6 +14,7 @@ import {
   LayoutDashboard,
   LogOut,
   Mail,
+  ScrollText,
   Settings,
   SlidersHorizontal,
   Upload,
@@ -95,6 +96,7 @@ function SchoolNavigation() {
           ? [
               { to: "/usuarios", label: "Usuários e acessos", icon: Users },
               { to: "/suporte", label: "Acesso de suporte", icon: Headset },
+              ...(has("DIRETOR") ? [{ to: "/auditoria", label: "Auditoria", icon: ScrollText }] : []),
               { to: "/administracao", label: "Administração", icon: Settings },
             ]
           : []),

@@ -86,6 +86,7 @@ app.MapGet("/api/health", (TenantScope tenant) => Results.Ok(new { status = "ok"
 
 SessionEndpoints.Map(app);
 Sinedu.Tenant.Host.Operations.ClosingExport.Map(app);
+Sinedu.Tenant.Host.Operations.AuditEndpoints.Map(app);
 app.MapModules();
 
 // Contrato OpenAPI só fora de produção: o mapa da API não fica público. Versionado em .doc/api/.
