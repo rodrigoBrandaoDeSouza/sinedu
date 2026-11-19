@@ -166,7 +166,7 @@ Interpretações feitas na arquitetura. Valem como padrão até serem confirmada
 - [ ] Prazos de retenção e descarte — definir com as redes e assessoria LGPD.
 - [x] Amostras anonimizadas de importação (D7) — `.doc/amostras/alunos-2026-anonimizado.xlsx` (1.032 alunos, 34 turmas), carregada na `escola-teste`.
 - [ ] Modelo de texto padrão das comunicações aos responsáveis — **dois modelos neutros já em uso**; validar o texto com as redes.
-- [ ] Logo da escola no cabeçalho da ata (D12) — falta o upload de logo no perfil da escola.
+- [x] Logo da escola no cabeçalho da ata (D12) — upload em Administração (F5-05).
 
 ### Pendências técnicas da Fase 1 (antes da homologação — F6-08)
 
