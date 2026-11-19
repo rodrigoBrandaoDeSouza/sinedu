@@ -39,10 +39,10 @@ public sealed class TenantsModule : IModule
         {
             var rows = await db.Tenants.AsNoTracking()
                 .OrderBy(t => t.DisplayName)
-                .Select(t => new { t.Id, t.Slug, t.DisplayName, Network = t.Network != null ? t.Network.Name : null, t.Status, t.StatusReason, t.SchemaVersion, t.CreatedAt })
+                .Select(t => new { t.Id, t.Slug, t.DisplayName, t.NetworkId, Network = t.Network != null ? t.Network.Name : null, t.Status, t.StatusReason, t.SchemaVersion, t.CreatedAt })
                 .ToListAsync(ct);
             return rows.Select(t => new TenantSummary(
-                t.Id, t.Slug, t.DisplayName, urls.Value.TenantUrl(t.Slug), t.Network, t.Status, t.StatusReason, t.SchemaVersion, t.CreatedAt));
+                t.Id, t.Slug, t.DisplayName, urls.Value.TenantUrl(t.Slug), t.Network, t.Status, t.StatusReason, t.SchemaVersion, t.CreatedAt, t.NetworkId));
         });
 
         tenants.MapGet("/{id:guid}", async (Guid id, TenantsDbContext db, CancellationToken ct) =>
@@ -85,15 +85,88 @@ public sealed class TenantsModule : IModule
         }).RequireAuthorization(Policies.PlatformSuperAdmin);
 
         var networks = endpoints.MapPanelApi("/networks").RequireAuthorization(Policies.PlatformStaff);
+        // P-04 (D5): rede só agrupa escolas no painel. Sem visão de rede, sem dado de aluno.
         networks.MapGet("/", async (TenantsDbContext db, CancellationToken ct) =>
-            await db.Networks.AsNoTracking().OrderBy(n => n.Name).ToListAsync(ct));
-        networks.MapPost("/", async (CreateNetworkRequest body, TenantsDbContext db, TimeProvider clock, CancellationToken ct) =>
         {
-            var network = new Network { Id = Guid.CreateVersion7(), Name = body.Name.Trim(), Kind = body.Kind, Uf = body.Uf, Municipality = body.Municipality, CreatedAt = clock.GetUtcNow() };
+            var counts = await db.Tenants.AsNoTracking().Where(t => t.NetworkId != null && t.Status != TenantStatus.Closed)
+                .GroupBy(t => t.NetworkId).Select(g => new { g.Key, Count = g.Count() }).ToDictionaryAsync(x => x.Key!.Value, x => x.Count, ct);
+            var list = await db.Networks.AsNoTracking().OrderBy(n => n.Name).ToListAsync(ct);
+            return list.Select(n => new { n.Id, n.Name, n.Kind, n.Uf, n.Municipality, n.CreatedAt, schools = counts.GetValueOrDefault(n.Id) });
+        });
+
+        networks.MapPost("/", async (CreateNetworkRequest body, TenantsDbContext db, IAuditLog audit, TimeProvider clock, CancellationToken ct) =>
+        {
+            var errors = await ValidateNetworkAsync(body, null, db, ct);
+            if (errors.Count > 0) return Results.ValidationProblem(errors);
+            var network = new Network { Id = Guid.CreateVersion7(), Name = body.Name.Trim(), CreatedAt = clock.GetUtcNow() };
+            Apply(network, body);
             db.Networks.Add(network);
             await db.SaveChangesAsync(ct);
+            await audit.WriteAsync(new AuditEntry("network_created", ResourceType: "network", ResourceId: network.Id.ToString()), ct);
             return Results.Created($"/api/networks/{network.Id}", network);
         }).RequireAuthorization(Policies.PlatformSuperAdmin);
+
+        networks.MapPut("/{id:guid}", async (Guid id, CreateNetworkRequest body, TenantsDbContext db, IAuditLog audit, CancellationToken ct) =>
+        {
+            var network = await db.Networks.FirstOrDefaultAsync(n => n.Id == id, ct);
+            if (network is null) return Results.NotFound();
+            var errors = await ValidateNetworkAsync(body, id, db, ct);
+            if (errors.Count > 0) return Results.ValidationProblem(errors);
+            Apply(network, body);
+            await db.SaveChangesAsync(ct);
+            await audit.WriteAsync(new AuditEntry("network_updated", ResourceType: "network", ResourceId: id.ToString()), ct);
+            return Results.NoContent();
+        }).RequireAuthorization(Policies.PlatformSuperAdmin);
+
+        networks.MapDelete("/{id:guid}", async (Guid id, TenantsDbContext db, IAuditLog audit, CancellationToken ct) =>
+        {
+            if (await db.Tenants.AnyAsync(t => t.NetworkId == id, ct))
+            {
+                return Results.Problem(statusCode: 409, title: "Desvincule as escolas antes de excluir a rede.");
+            }
+
+            var removed = await db.Networks.Where(n => n.Id == id).ExecuteDeleteAsync(ct);
+            if (removed == 0) return Results.NotFound();
+            await audit.WriteAsync(new AuditEntry("network_deleted", ResourceType: "network", ResourceId: id.ToString()), ct);
+            return Results.NoContent();
+        }).RequireAuthorization(Policies.PlatformSuperAdmin);
+
+        // Vincula (ou desvincula, com null) uma escola existente a uma rede.
+        tenants.MapPut("/{id:guid}/network", async (Guid id, TenantNetworkRequest body, TenantsDbContext db, IAuditLog audit, CancellationToken ct) =>
+        {
+            var tenant = await db.Tenants.FirstOrDefaultAsync(t => t.Id == id, ct);
+            if (tenant is null) return Results.NotFound();
+            if (body.NetworkId is { } nid && !await db.Networks.AnyAsync(n => n.Id == nid, ct))
+            {
+                return Results.ValidationProblem(new Dictionary<string, string[]> { ["networkId"] = ["Rede inválida."] });
+            }
+
+            tenant.NetworkId = body.NetworkId;
+            await db.SaveChangesAsync(ct);
+            await audit.WriteAsync(new AuditEntry("tenant_network_changed", ResourceType: "tenant", ResourceId: id.ToString()), ct);
+            return Results.NoContent();
+        }).RequireAuthorization(Policies.PlatformSuperAdmin);
+    }
+
+    private static async Task<Dictionary<string, string[]>> ValidateNetworkAsync(CreateNetworkRequest body, Guid? id, TenantsDbContext db, CancellationToken ct)
+    {
+        var errors = new Dictionary<string, string[]>();
+        var name = body.Name?.Trim() ?? "";
+        if (name.Length is < 3 or > 200) errors["name"] = ["Use de 3 a 200 caracteres."];
+        else if (await db.Networks.AnyAsync(n => n.Id != id && n.Name == name, ct)) errors["name"] = ["Já existe uma rede com este nome."];
+        if (!Enum.IsDefined(body.Kind)) errors["kind"] = ["Escolha o tipo."];
+        var uf = body.Uf?.Trim().ToUpperInvariant();
+        if (!string.IsNullOrEmpty(uf) && (uf.Length != 2 || !uf.All(char.IsAsciiLetterUpper))) errors["uf"] = ["Use a sigla do estado (ex.: PR)."];
+        if (body.Municipality?.Trim().Length > 120) errors["municipality"] = ["Use no máximo 120 caracteres."];
+        return errors;
+    }
+
+    private static void Apply(Network network, CreateNetworkRequest body)
+    {
+        network.Name = body.Name.Trim();
+        network.Kind = body.Kind;
+        network.Uf = string.IsNullOrWhiteSpace(body.Uf) ? null : body.Uf.Trim().ToUpperInvariant();
+        network.Municipality = string.IsNullOrWhiteSpace(body.Municipality) ? null : body.Municipality.Trim();
     }
 
     private static async Task<IResult> CreateTenantAsync(
@@ -151,10 +224,13 @@ public sealed record CreateTenantRequest(
 
 public sealed record CreateNetworkRequest(string Name, NetworkKind Kind, string? Uf, string? Municipality);
 
+public sealed record TenantNetworkRequest(Guid? NetworkId);
+
 public sealed record ReasonRequest(string? Reason);
 
 public sealed record TenantSummary(
-    Guid Id, string Slug, string DisplayName, Uri Url, string? Network, TenantStatus Status, string? StatusReason, string? SchemaVersion, DateTimeOffset CreatedAt);
+    Guid Id, string Slug, string DisplayName, Uri Url, string? Network, TenantStatus Status, string? StatusReason, string? SchemaVersion, DateTimeOffset CreatedAt,
+    Guid? NetworkId = null);
 
 public sealed record TenantDetails(
     Guid Id, string Slug, string DisplayName, string? Network, string? InstitutionalCode, TenantStatus Status, string? StatusReason,

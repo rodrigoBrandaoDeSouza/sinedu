@@ -7,6 +7,7 @@ import { OverviewPage } from "./pages/overview-page";
 import { SettingsPage } from "./pages/settings-page";
 import { SupportPage } from "./pages/support-page";
 import { TenantsPage } from "./pages/tenants-page";
+import { NetworksPage } from "./pages/networks-page";
 import { ContractsPage } from "./pages/contracts-page";
 import { InvoicesPage } from "./pages/invoices-page";
 
@@ -21,7 +22,7 @@ export const routes: RouteObject[] = [
     children: [
       { index: true, element: <OverviewPage /> },
       { path: "escolas", element: <TenantsPage /> },
-      soon("redes", "Redes", "Agrupamento de escolas por rede estadual ou municipal.", "P-04"),
+      { path: "redes", element: <NetworksPage /> },
       { path: "suporte", element: <SupportPage /> },
       { path: "contratos", element: <ContractsPage /> },
       { path: "faturas", element: <InvoicesPage /> },
