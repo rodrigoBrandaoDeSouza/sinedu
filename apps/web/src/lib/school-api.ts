@@ -2,7 +2,7 @@ import { api } from "@sinedu/ui";
 
 export type Shift = "Manha" | "Tarde" | "Noite" | "Integral";
 export type Stage = "Fundamental" | "Medio" | "Outra";
-export type EnrollmentStatus = "Ativa" | "Transferida" | "Remanejada" | "Concluida" | "Cancelada";
+export type EnrollmentStatus = "Ativa" | "Transferida" | "Remanejada" | "Concluida" | "Cancelada" | "Prevista";
 export type Relationship = "Mae" | "Pai" | "Avos" | "Responsavel" | "ProprioAluno" | "Outro";
 export type StaffFunction = "Diretor" | "Pedagogo" | "Professor" | "Secretaria" | "Outro";
 
@@ -127,6 +127,7 @@ export const enrollmentLabels: Record<EnrollmentStatus, string> = {
   Remanejada: "Remanejada",
   Concluida: "Concluída",
   Cancelada: "Cancelada",
+  Prevista: "Prevista (próximo ano)",
 };
 export const staffFunctionLabels: Record<StaffFunction, string> = {
   Diretor: "Direção",

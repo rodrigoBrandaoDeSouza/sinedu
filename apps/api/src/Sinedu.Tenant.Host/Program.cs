@@ -64,6 +64,13 @@ if (args.Length >= 2 && args[0] == "rewrap-protected")
     return;
 }
 
+// seed-demo {escola} {ano}: dados FICTÍCIOS para demonstração/homologação (nunca em escola real).
+if (args.Length >= 3 && args[0] == "seed-demo")
+{
+    await Sinedu.Tenant.Host.Dev.DemoSeeder.RunAsync(app.Services, args[1], int.Parse(args[2], System.Globalization.CultureInfo.InvariantCulture));
+    return;
+}
+
 if (args.Length >= 3 && args[0] == "import-sample")
 {
     await Sinedu.Tenant.Host.Dev.SampleImporter.RunAsync(app.Services, args[1], args[2], args.Length > 3 ? args[3] : null);

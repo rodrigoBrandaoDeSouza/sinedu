@@ -19,6 +19,9 @@ public enum EnrollmentStatus
     Remanejada,
     Concluida,
     Cancelada,
+
+    /// <summary>Rematrícula para o próximo ano letivo (ainda não começou). Não conta como matrícula ativa.</summary>
+    Prevista,
 }
 
 public enum DataSource

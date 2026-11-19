@@ -12,4 +12,9 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <!-- Comandos de operação do host (ex.: seed-demo) usam os serviços internos, com as mesmas regras das telas. -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="Sinedu.Tenant.Host" />
+  </ItemGroup>
+
 </Project>
