@@ -1,0 +1,118 @@
+# Sinedu — HOMOLOGAÇÃO na VPS (sinedu.bsuite.tech), atrás do Nginx que já existe no servidor.
+# Tudo escuta só em 127.0.0.1; o Nginx termina o TLS e encaminha. Segredos em ./.env (gerado pelo bootstrap,
+# fora do Git). Dados SEMPRE fictícios/anonimizados.
+#   docker compose -f docker-compose.hml.yml --env-file .env up -d
+name: sinedu-hml
+
+x-api-env: &api-env
+  ASPNETCORE_ENVIRONMENT: Production
+  Sinedu__BaseDomain: ${SINEDU_DOMAIN}
+  Sinedu__AccountUrl: https://conta.${SINEDU_DOMAIN}
+  Sinedu__PanelUrl: https://painel.${SINEDU_DOMAIN}
+  Sinedu__TenantUrlTemplate: https://{slug}.${SINEDU_DOMAIN}
+  Sinedu__SecureCookies: "true"
+  Sinedu__TrustedProxyNetwork: 172.30.0.0/24
+  Vault__Address: http://vault:8200
+  Storage__ServiceUrl: http://storage:8333
+  Storage__AccessKey: ${S3_ACCESS_KEY}
+  Storage__SecretKey: ${S3_SECRET_KEY}
+  # Padrão da homologação: Mailpit (nada sai para a internet). SMTP real por escola, pelo painel.
+  Smtp__Host: mailpit
+  Smtp__Port: "1025"
+  Smtp__UseTls: "false"
+  Smtp__FromAddress: nao-responda@${SINEDU_DOMAIN}
+  Oidc__TenantClientSecret: ${OIDC_TENANT_CLIENT_SECRET}
+  DataProtection__KeysPath: /keys
+
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: 172.30.0.0/24
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: sinedu_admin
+      POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD}
+    volumes: [postgres-data:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sinedu_admin"]
+      interval: 5s
+      retries: 20
+
+  vault:
+    image: hashicorp/vault:1.20
+    restart: unless-stopped
+    command: server
+    environment:
+      VAULT_LOCAL_CONFIG: '{"storage":{"file":{"path":"/vault/file"}},"listener":{"tcp":{"address":"0.0.0.0:8200","tls_disable":true}},"ui":false,"disable_mlock":true,"default_lease_ttl":"87600h","max_lease_ttl":"87600h"}'
+    volumes: [vault-data:/vault/file]
+
+  # Homologação: destrava o Vault sozinho depois de um reinício (chave em ./secrets, só root lê).
+  # Em produção a chave de destravamento NÃO fica no servidor.
+  vault-unsealer:
+    image: hashicorp/vault:1.20
+    restart: unless-stopped
+    environment:
+      VAULT_ADDR: http://vault:8200
+    volumes: [./secrets/vault-unseal-key:/unseal-key:ro]
+    entrypoint: ["/bin/sh", "-c", "while true; do vault status >/dev/null 2>&1; [ $$? -eq 2 ] && vault operator unseal \"$$(cat /unseal-key)\" >/dev/null; sleep 15; done"]
+    depends_on: [vault]
+
+  storage:
+    image: chrislusf/seaweedfs:3.99
+    restart: unless-stopped
+    command: server -s3 -s3.config=/etc/seaweedfs/s3.json -dir=/data -volume.max=0
+    volumes: [storage-data:/data, ./secrets/s3.json:/etc/seaweedfs/s3.json:ro]
+
+  mailpit:
+    image: axllent/mailpit:v1.27
+    restart: unless-stopped
+    environment:
+      MP_MAX_MESSAGES: "2000"
+    ports: ["127.0.0.1:8125:8025"]
+
+  platform:
+    image: sinedu/platform:hml
+    restart: unless-stopped
+    environment:
+      <<: *api-env
+      ConnectionStrings__Platform: Host=postgres;Database=sinedu_platform;Username=sinedu_admin;Password=${POSTGRES_ADMIN_PASSWORD}
+      TenantDatabases__AdminConnectionString: Host=postgres;Database=postgres;Username=sinedu_admin;Password=${POSTGRES_ADMIN_PASSWORD}
+      TenantDatabases__Host: postgres
+      TenantDatabases__Port: "5432"
+      Vault__Token: ${VAULT_PLATFORM_TOKEN}
+      Oidc__PanelClientSecret: ${OIDC_PANEL_CLIENT_SECRET}
+      Oidc__SigningCertificatePath: /secrets/oidc-signing.pfx
+      Oidc__EncryptionCertificatePath: /secrets/oidc-encryption.pfx
+      Oidc__CertificatePassword: ${OIDC_CERTIFICATE_PASSWORD}
+    volumes:
+      - ./secrets/oidc-signing.pfx:/secrets/oidc-signing.pfx:ro
+      - ./secrets/oidc-encryption.pfx:/secrets/oidc-encryption.pfx:ro
+      - platform-keys:/keys
+    ports: ["127.0.0.1:5100:8080"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      vault: { condition: service_started }
+      storage: { condition: service_started }
+
+  tenant:
+    image: sinedu/tenant:hml
+    restart: unless-stopped
+    environment:
+      <<: *api-env
+      ConnectionStrings__PlatformRegistry: Host=postgres;Database=sinedu_platform;Username=sinedu_registry_reader;Password=${REGISTRY_READER_PASSWORD}
+      Vault__Token: ${VAULT_TENANT_TOKEN}
+    volumes: [tenant-keys:/keys]
+    ports: ["127.0.0.1:5200:8080"]
+    depends_on: [platform]
+
+volumes:
+  postgres-data:
+  vault-data:
+  storage-data:
+  platform-keys:
+  tenant-keys:

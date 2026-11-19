@@ -28,6 +28,18 @@ public static class WebDefaults
             .Enrich.FromLogContext()
             .WriteTo.Console(new RenderedCompactJsonFormatter()));
 
+        // Chaves que protegem cookies de sessão e estado do OIDC. Em servidor, persistidas em disco
+        // (DataProtection:KeysPath) para um reinício não derrubar todos os logins. Em dev/testes, em memória.
+        var keysPath = builder.Configuration["DataProtection:KeysPath"];
+        if (!string.IsNullOrWhiteSpace(keysPath))
+        {
+            Microsoft.AspNetCore.DataProtection.DataProtectionBuilderExtensions.PersistKeysToFileSystem(
+                Microsoft.AspNetCore.DataProtection.DataProtectionBuilderExtensions.SetApplicationName(
+                    Microsoft.Extensions.DependencyInjection.DataProtectionServiceCollectionExtensions.AddDataProtection(builder.Services),
+                    "sinedu-" + builder.Environment.ApplicationName),
+                new DirectoryInfo(keysPath));
+        }
+
         // Enums como texto na API (contrato legível e estável).
         builder.Services.ConfigureHttpJsonOptions(o => o.SerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter()));
 

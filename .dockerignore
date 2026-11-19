@@ -1,0 +1,16 @@
+# Nunca levar para imagens: arquivos reais de escolas, segredos, builds locais e dependências.
+.doc/files/
+**/.env
+**/.env.*
+infra/prod/secrets/
+infra/hml/secrets/
+**/bin/
+**/obj/
+**/node_modules/
+**/dist/
+test-results/
+playwright-report/
+.git/
+.vs/
+.vscode/
+.idea/

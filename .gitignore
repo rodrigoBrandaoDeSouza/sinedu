@@ -55,3 +55,5 @@ playwright-report/
 # Segredos de produção (certificados OIDC, credenciais S3)
 infra/prod/secrets/
 infra/prod/s3.json
+infra/hml/secrets/
+infra/hml/.env

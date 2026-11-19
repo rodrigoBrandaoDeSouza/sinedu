@@ -15,6 +15,8 @@ ENV ASPNETCORE_URLS=http://+:8080 \
     SINEDU_HOST_DLL=${HOST}.dll
 WORKDIR /app
 COPY --from=build /out .
+# Volume das chaves de sessão (DataProtection): gravável pelo usuário da aplicação.
+RUN mkdir -p /keys && chown app:app /keys
 USER app
 EXPOSE 8080
 ENTRYPOINT ["sh", "-c", "exec dotnet \"$SINEDU_HOST_DLL\" \"$@\"", "--"]
