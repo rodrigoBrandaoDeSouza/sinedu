@@ -124,7 +124,7 @@ Legenda: 🔒 segurança bloqueante · 🧪 inclui teste de negação/isolamento
 | F6-05 ✅ | E2E (Playwright): login único, troca de escola, fluxos principais, painel — `npm run e2e` (pasta `e2e/`) | F6-04, P-08 |
 | F6-06 ✅ | Documentação: instalação local, variáveis, migrations, testes, deploy, backup/restauração por escola, provisionamento | — |
 | F6-07 🔒 ✅ | Revisão de segurança final + relatório de testes + matriz validada (entregável de evidência) — [relatório](../relatorios/revisao-seguranca-mvp.md) | todos |
-| F6-08 🟡 | Homologação na VPS: Caddy com certificado wildcard, Vault, backups cifrados por escola — arquivos prontos em `infra/prod`; falta executar na VPS (acesso e DNS) | F6-06 |
+| F6-08 ✅ | Homologação na VPS (`sinedu.bsuite.tech`): Nginx do servidor + Let's Encrypt por nome (`infra/hml`), Vault persistente, backups cifrados por escola com cron diário, cópia fora da VPS (`pull-backups.sh`) e restauração verificada. Produção continua em `infra/prod` (Caddy com wildcard) | F6-06 |
 
 ## Caminho crítico
 

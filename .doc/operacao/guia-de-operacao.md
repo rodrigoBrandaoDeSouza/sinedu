@@ -67,6 +67,20 @@ Arquivos em [`infra/prod/`](../../infra/prod): `docker-compose.prod.yml`, `Caddy
 7. **Primeiro administrador:** `docker compose run --rm platform create-super-admin admin@dominio "Nome Completo"`. A pessoa recebe o convite por e-mail, cria a senha e cadastra o MFA. O comando só funciona enquanto não existe nenhum SUPER_ADMIN.
 8. **Primeira escola:** pelo painel. O provisionamento cria banco, papéis, chave no Vault e bucket, e convida o primeiro Diretor.
 
+### 4.1 Homologação atual (`sinedu.bsuite.tech`)
+
+A homologação roda numa VPS que já tem outros sites, atrás do **Nginx do servidor** (não do Caddy). Os arquivos estão em [`infra/hml/`](../../infra/hml) e ficam em `/opt/sinedu/hml` na VPS. Os dados são sempre fictícios ou anonimizados.
+
+| Script | Onde roda | O que faz |
+|---|---|---|
+| `deploy.sh [--sem-api]` | este computador (Git Bash) | Gera as imagens e os fronts, envia por SSH (`bem-vps`), aplica as migrations e atualiza as escolas |
+| `bootstrap.sh <email> "<Nome>"` | VPS, uma vez | Gera os segredos **na VPS**, inicializa o Vault, migra o banco e cria o primeiro super admin |
+| `add-host-cert.sh <slug...>` | VPS | Inclui o subdomínio de cada escola nova no certificado Let's Encrypt (o DNS da Hostinger não emite certificado curinga) |
+| `backup.sh` / `restore-escola.sh` | VPS | Backup cifrado e restauração por escola (seção 6) |
+| `pull-backups.sh` | este computador | Traz para cá os backups ainda não copiados e confere os hashes |
+
+Endereços: `conta.`, `painel.`, `mail.` (Mailpit, com senha em `secrets/mailpit-password.txt`) e `{escola}.sinedu.bsuite.tech`. Todos os contêineres escutam só em `127.0.0.1`. Antes de recarregar o Nginx, rode sempre `nginx -t`, porque os outros sites dependem dele.
+
 ## 5. Atualização de versão
 
 1. Backup (seção 6).
@@ -80,6 +94,18 @@ Arquivos em [`infra/prod/`](../../infra/prod): `docker-compose.prod.yml`, `Caddy
 - `infra/prod/restore-escola.sh <pasta> <slug> <chave-privada>`: confere o `SHA256SUMS`, restaura só aquela escola (banco e anexos) e não toca nas outras.
 - Saúde e Proteção continuam cifrados dentro do backup (envelope com chave no Vault). Sem a chave Transit da escola, não há como lê-los. É isso que torna o encerramento com crypto-shredding definitivo (P11).
 - **Teste de restauração:** uma vez por trimestre, restaure uma escola de homologação e abra uma ficha de Saúde e um anexo.
+
+**Na homologação** ([`infra/hml/backup.sh`](../../infra/hml/backup.sh)):
+- Roda pelo cron todo dia às 03:30 de Brasília (`/etc/cron.d/sinedu-hml-backup`). Grava em `/var/backups/sinedu-hml/<data>/` e guarda 14 dias. O log fica em `/var/log/sinedu-hml-backup.log`.
+- Além dos arquivos por escola, gera o `infra.tar.age`, com os dados do Vault (chaves Transit das escolas), o `.env` e a pasta `secrets/`. Sem ele, um servidor perdido não volta: os bancos restaurados ficariam com Saúde e Proteção ilegíveis.
+- A chave pública fica em `secrets/backup-recipient.txt`. A **chave privada não fica na VPS**: está em `~/.sinedu/hml-backup.agekey` no computador do responsável. Guarde uma cópia num cofre de senhas, porque sem ela nenhum backup pode ser aberto.
+- **Cópia para fora da VPS:** rode `infra/hml/pull-backups.sh` regularmente. Ele baixa para `~/.sinedu/backups-hml` só o que é novo.
+- **Restaurar uma escola:** copie a chave privada para a VPS só durante a operação e rode `./restore-escola.sh /var/backups/sinedu-hml/<data> <slug> <chave>`. Depois apague a chave da VPS.
+- **Servidor perdido:**
+  1. Decifre o `infra.tar.age` e recoloque o `.env` e a pasta `secrets/` em `/opt/sinedu/hml`.
+  2. Recoloque o `vault-data.tar` no volume `sinedu-hml_vault-data`.
+  3. Rode `deploy.sh`.
+  4. Restaure o `platform.dump.age` com `pg_restore` e depois cada escola.
 
 ## 7. Operações de escola
 

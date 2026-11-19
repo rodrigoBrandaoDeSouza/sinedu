@@ -24,7 +24,7 @@ for app in conta painel web; do
 done
 
 echo "[deploy] configuração"
-tar -czf - -C infra/hml docker-compose.hml.yml bootstrap.sh nginx-sinedu.conf nginx-sinedu-common.conf nginx-sinedu-proxy.conf nginx-sinedu-tls.conf add-host-cert.sh \
+tar -czf - -C infra/hml docker-compose.hml.yml bootstrap.sh nginx-sinedu.conf nginx-sinedu-common.conf nginx-sinedu-proxy.conf nginx-sinedu-tls.conf add-host-cert.sh backup.sh restore-escola.sh \
   | ssh "$VPS" "tar -xzf - -C $REMOTE/hml && chmod +x $REMOTE/hml/*.sh"
 tar -czf - -C infra/vault/policies platform.hcl tenant-app.hcl | ssh "$VPS" "tar -xzf - -C $REMOTE/hml/policies"
 
