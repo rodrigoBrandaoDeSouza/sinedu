@@ -53,7 +53,7 @@ Abreviações: **Dir** Diretor · **Ped** Pedagogo · **Adm** ADMIN_TECNICO · *
 | Perfil da escola e cabeçalho da ata | ✅ | ❌ | ✅ | ❌ | ❌ | ver |
 | Anos letivos, bimestres, séries, turmas | ✅ | ❌ | ✅ | ❌ | ❌ | ver |
 | Equipe e vínculos professor↔turma | ✅ | ✅ ⚠️ P7 | ✅ | ❌ | ❌ | ver |
-| Categorias, gravidades, modelos de e-mail | ✅ | ✅ | ✅ | ❌ | ❌ | ver |
+| Criar, renomear e desativar categorias; editar modelos de e-mail (gravidades são fixas) — só Direção, decisão do produto | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
 
 ### Cadastro comum
 
